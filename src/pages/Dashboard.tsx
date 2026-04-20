@@ -53,7 +53,9 @@ export default function Dashboard() {
     cgpa: '',
     institution: '',
     fieldOfInterest: '',
-    financialReadiness: ''
+    financialReadiness: '',
+    highSchoolExam: '',
+    subjects: [] as {name: string, grade: string}[]
   });
 
   useEffect(() => {
@@ -97,10 +99,20 @@ export default function Dashboard() {
                 fieldOfInterest: (profileData as any).fieldOfInterest || parsedData.fieldOfInterest,
                 cgpa: (profileData as any).cgpa || parsedData.cgpa,
                 financialReadiness: (profileData as any).financialReadiness || parsedData.financialReadiness,
+                highSchoolExam: (profileData as any).highSchoolExam || parsedData.highSchoolExam,
+                subjects: (profileData as any).subjects || parsedData.subjects,
               };
               
               // Recalculate priority
-              (profileData as any).isHighPriority = ['High', 'Sponsor'].includes((profileData as any).financialReadiness) && parseFloat((profileData as any).cgpa) >= 3.5;
+              let hasHighGrades = false;
+              if (parsedData.academicStatus === "High School") {
+                 const highGradesCount = ((profileData as any).subjects || []).filter((sub: any) => ['A1', 'B2', 'B3'].includes(sub.grade)).length;
+                 if (highGradesCount >= 5) hasHighGrades = true;
+              } else {
+                 const cgpaVal = parseFloat((profileData as any).cgpa);
+                 if (!isNaN(cgpaVal) && cgpaVal >= 3.5) hasHighGrades = true;
+              }
+              (profileData as any).isHighPriority = ['High', 'Sponsor'].includes((profileData as any).financialReadiness) && hasHighGrades;
 
               // Clear local storage after sync
               localStorage.removeItem('move2deutschland_lead_form');
@@ -130,7 +142,9 @@ export default function Dashboard() {
             cgpa: (profileData as any).cgpa || '',
             institution: (profileData as any).institution || '',
             fieldOfInterest: (profileData as any).fieldOfInterest || '',
-            financialReadiness: (profileData as any).financialReadiness || ''
+            financialReadiness: (profileData as any).financialReadiness || '',
+            highSchoolExam: (profileData as any).highSchoolExam || '',
+            subjects: (profileData as any).subjects || [],
           });
 
           // Update other UI states
@@ -206,7 +220,13 @@ export default function Dashboard() {
           institution: editProfileData.institution,
           fieldOfInterest: editProfileData.fieldOfInterest,
           financialReadiness: editProfileData.financialReadiness,
-          isHighPriority: ['High', 'Sponsor'].includes(editProfileData.financialReadiness) && parseFloat(editProfileData.cgpa) >= 3.5
+          highSchoolExam: editProfileData.highSchoolExam,
+          subjects: editProfileData.subjects,
+          isHighPriority: ['High', 'Sponsor'].includes(editProfileData.financialReadiness) && (
+            editProfileData.highSchoolExam 
+              ? editProfileData.subjects.filter(s => ['A1', 'B2', 'B3'].includes(s.grade)).length >= 5 
+              : parseFloat(editProfileData.cgpa) >= 3.5
+          )
         }
       }, { merge: true });
 
@@ -279,7 +299,8 @@ export default function Dashboard() {
   };
 
   const handleSubmitApplication = async () => {
-    if (!user || !cgpa || !germanGrade) {
+    const isHighSchool = editProfileData.highSchoolExam !== "" && editProfileData.subjects && editProfileData.subjects.length > 0;
+    if (!user || (!isHighSchool && (!cgpa || !germanGrade))) {
       alert("Please complete your academic profile first.");
       return;
     }
@@ -305,8 +326,9 @@ export default function Dashboard() {
             <h2>New Application</h2>
             <p><strong>Name:</strong> ${user.displayName || 'N/A'}</p>
             <p><strong>Email:</strong> ${user.email}</p>
-            <p><strong>Nigerian CGPA:</strong> ${cgpa}</p>
-            <p><strong>German Grade:</strong> ${germanGrade}</p>
+            ${isHighSchool ? `<p><strong>High School Exam:</strong> ${editProfileData.highSchoolExam}</p>` : ''}
+            ${!isHighSchool ? `<p><strong>Nigerian CGPA:</strong> ${cgpa}</p>` : ''}
+            ${!isHighSchool ? `<p><strong>German Grade:</strong> ${germanGrade}</p>` : ''}
             <p>Please review their documents in the dashboard.</p>
           `
         }
@@ -486,27 +508,55 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nigerian CGPA (5.0 Scale)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    min="1.0"
-                    max="5.0"
-                    value={cgpa}
-                    onChange={handleCgpaChange}
-                    placeholder="e.g. 4.20"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">German Grade (Modified Bavarian)</label>
-                  <div className={`w-full px-4 py-3 rounded-xl border ${germanGrade ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-400'} font-bold text-lg flex items-center`}>
-                    {germanGrade ? `${germanGrade} (1.0 is highest)` : 'Enter CGPA to calculate'}
+              {editProfileData.highSchoolExam ? (
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">High School Exam: {editProfileData.highSchoolExam}</label>
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="p-3 font-semibold text-slate-600">Subject</th>
+                            <th className="p-3 font-semibold text-slate-600">Grade</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {editProfileData.subjects.map((sub, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/50">
+                              <td className="p-3 font-medium text-prussian-blue">{sub.name || '-'}</td>
+                              <td className="p-3">
+                                <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold ${['A1', 'B2', 'B3'].includes(sub.grade) ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>{sub.grade || '-'}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Nigerian CGPA (5.0 Scale)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="1.0"
+                      max="5.0"
+                      value={cgpa}
+                      onChange={handleCgpaChange}
+                      placeholder="e.g. 4.20"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">German Grade (Modified Bavarian)</label>
+                    <div className={`w-full px-4 py-3 rounded-xl border ${germanGrade ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-400'} font-bold text-lg flex items-center`}>
+                      {germanGrade ? `${germanGrade} (1.0 is highest)` : 'Enter CGPA to calculate'}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Document Management */}
@@ -671,19 +721,39 @@ export default function Dashboard() {
                   className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">CGPA (5.0 Scale)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    min="1.0"
-                    max="5.0"
-                    value={editProfileData.cgpa}
-                    onChange={(e) => setEditProfileData({...editProfileData, cgpa: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
-                  />
+              {!editProfileData.highSchoolExam && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">CGPA (5.0 Scale)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="1.0"
+                      max="5.0"
+                      value={editProfileData.cgpa}
+                      onChange={(e) => setEditProfileData({...editProfileData, cgpa: e.target.value})}
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Field of Interest</label>
+                    <select 
+                      value={editProfileData.fieldOfInterest}
+                      onChange={(e) => setEditProfileData({...editProfileData, fieldOfInterest: e.target.value})}
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                    >
+                      <option value="">Select Field</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="IT & Computer Science">IT & Computer Science</option>
+                      <option value="Healthcare & Medicine">Healthcare & Medicine</option>
+                      <option value="Business & Finance">Business & Finance</option>
+                      <option value="Arts & Humanities">Arts & Humanities</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
+              )}
+              {editProfileData.highSchoolExam && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Field of Interest</label>
                   <select 
@@ -700,7 +770,7 @@ export default function Dashboard() {
                     <option value="Other">Other</option>
                   </select>
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Financial Readiness</label>
                 <select 

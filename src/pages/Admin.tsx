@@ -499,8 +499,23 @@ export default function Admin() {
                               </div>
                             </td>
                             <td className="p-5">
-                              <div className="text-sm mb-1"><span className="text-slate-400 font-medium">CGPA:</span> <span className="font-bold text-prussian-blue">{user.profile?.cgpa || '-'}</span></div>
-                              <div className="text-sm"><span className="text-slate-400 font-medium">German:</span> <span className="font-bold text-prussian-blue">{user.profile?.germanGrade || '-'}</span></div>
+                              {user.profile?.highSchoolExam ? (
+                                <div className="text-sm">
+                                  <div className="mb-2"><span className="text-slate-400 font-medium">Exam:</span> <span className="font-bold text-prussian-blue">{user.profile.highSchoolExam}</span></div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {(user.profile.subjects || []).filter((s: any) => s.name && s.grade).map((sub: any, idx: number) => (
+                                      <span key={idx} className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${['A1', 'B2', 'B3'].includes(sub.grade) ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`} title={sub.name}>
+                                        {sub.name.substring(0, 3).toUpperCase()}: {sub.grade}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="text-sm mb-1"><span className="text-slate-400 font-medium">CGPA:</span> <span className="font-bold text-prussian-blue">{user.profile?.cgpa || '-'}</span></div>
+                                  <div className="text-sm"><span className="text-slate-400 font-medium">German:</span> <span className="font-bold text-prussian-blue">{user.profile?.germanGrade || '-'}</span></div>
+                                </>
+                              )}
                             </td>
                             <td className="p-5">
                               <div className="space-y-3">

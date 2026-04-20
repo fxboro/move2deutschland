@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Phone, Info } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Phone, Info, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+export interface SubjectGrade {
+  name: string;
+  grade: string;
+}
 
 interface FormData {
   academicStatus: string;
+  highSchoolExam: string;
+  subjects: SubjectGrade[];
   cgpa: string;
   fieldOfInterest: string;
   financialReadiness: string;
@@ -33,6 +40,8 @@ export default function LeadQuestionnaire() {
     }
     return {
       academicStatus: '',
+      highSchoolExam: '',
+      subjects: [],
       cgpa: '',
       fieldOfInterest: '',
       financialReadiness: '',
@@ -52,7 +61,7 @@ export default function LeadQuestionnaire() {
     }
   }, [step, formData]);
 
-  const updateForm = (field: keyof FormData, value: string) => {
+  const updateForm = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -61,8 +70,22 @@ export default function LeadQuestionnaire() {
 
   const handleSubmit = () => {
     // Logic: High financial readiness AND CGPA > 3.5 = High Priority
-    const cgpaValue = parseFloat(formData.cgpa);
-    if (['High', 'Sponsor'].includes(formData.financialReadiness) && !isNaN(cgpaValue) && cgpaValue >= 3.5) {
+    // For High School: At least 5 subjects with A1, B2, or B3 grades.
+    let hasHighGrades = false;
+
+    if (formData.academicStatus === "High School") {
+      const highGradesCount = (formData.subjects || []).filter(sub => ['A1', 'B2', 'B3'].includes(sub.grade)).length;
+      if (highGradesCount >= 5) {
+        hasHighGrades = true;
+      }
+    } else {
+      const cgpaValue = parseFloat(formData.cgpa);
+      if (!isNaN(cgpaValue) && cgpaValue >= 3.5) {
+        hasHighGrades = true;
+      }
+    }
+
+    if (['High', 'Sponsor'].includes(formData.financialReadiness) && hasHighGrades) {
       setIsHighPriority(true);
     } else {
       setIsHighPriority(false);
@@ -116,6 +139,19 @@ export default function LeadQuestionnaire() {
                       if (status !== "Bachelor's") {
                         updateForm('cgpa', '');
                       }
+                      if (status !== "High School") {
+                        updateForm('highSchoolExam', '');
+                        updateForm('subjects', []);
+                      } else if (!formData.subjects || formData.subjects.length === 0) {
+                        // Pre-fill required base subjects for High School
+                        updateForm('subjects', [
+                            {name: 'Mathematics', grade: ''},
+                            {name: 'English Language', grade: ''},
+                            {name: '', grade: ''},
+                            {name: '', grade: ''},
+                            {name: '', grade: ''}
+                        ]);
+                      }
                     }}
                     className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
                       formData.academicStatus === status
@@ -128,6 +164,95 @@ export default function LeadQuestionnaire() {
                 ))}
               </div>
             </div>
+
+            <AnimatePresence>
+              {formData.academicStatus === "High School" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  className="overflow-hidden space-y-6"
+                >
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Examination Type</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {['WAEC', 'NECO'].map((exam) => (
+                        <button
+                          key={exam}
+                          onClick={() => updateForm('highSchoolExam', exam)}
+                          className={`py-3 px-4 rounded-xl border text-sm font-medium transition-all ${
+                            formData.highSchoolExam === exam
+                              ? 'border-prussian-blue bg-blue-50 text-prussian-blue shadow-sm'
+                              : 'border-slate-200 text-slate-600 hover:border-prussian-blue/30 hover:bg-slate-50'
+                          }`}
+                        >
+                          {exam}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {formData.highSchoolExam && (
+                    <div className="space-y-4">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Subjects & Grades</label>
+                      <p className="text-xs text-slate-500 mb-3 -mt-3">Enter at least 5 subjects with your grades.</p>
+                      {(formData.subjects || []).map((sub, index) => (
+                         <div key={index} className="flex gap-2 sm:gap-3">
+                           <input 
+                             type="text" 
+                             placeholder="Subject (e.g. Physics)"
+                             value={sub.name}
+                             onChange={(e) => {
+                               const newSubjects = [...formData.subjects];
+                               newSubjects[index].name = e.target.value;
+                               updateForm('subjects', newSubjects);
+                             }}
+                             className="flex-1 p-3 text-sm rounded-xl border border-slate-200 focus:border-prussian-blue focus:ring-prussian-blue/20 outline-none"
+                           />
+                           <select
+                             value={sub.grade}
+                             onChange={(e) => {
+                               const newSubjects = [...formData.subjects];
+                               newSubjects[index].grade = e.target.value;
+                               updateForm('subjects', newSubjects);
+                             }}
+                             className="w-[90px] sm:w-[110px] p-3 text-sm rounded-xl border border-slate-200 focus:border-prussian-blue focus:ring-prussian-blue/20 outline-none bg-white"
+                           >
+                             <option value="" disabled>Grade</option>
+                             <option value="A1">A1</option>
+                             <option value="B2">B2</option>
+                             <option value="B3">B3</option>
+                             <option value="C4">C4</option>
+                             <option value="C5">C5</option>
+                             <option value="C6">C6</option>
+                             <option value="D7">D7</option>
+                             <option value="E8">E8</option>
+                             <option value="F9">F9</option>
+                           </select>
+                           <button 
+                             onClick={() => {
+                               const newSubjects = formData.subjects.filter((_, i) => i !== index);
+                               updateForm('subjects', newSubjects);
+                             }}
+                             className="w-10 h-10 flex items-center justify-center shrink-0 rounded-xl bg-red-50 text-red-500 hover:bg-red-100"
+                           >
+                              <X size={16} />
+                           </button>
+                         </div>
+                      ))}
+                      <button 
+                        onClick={() => {
+                           updateForm('subjects', [...(formData.subjects || []), {name: '', grade: ''}]);
+                        }}
+                        className="text-sm font-medium text-prussian-blue hover:text-blue-800 flex items-center gap-1 mt-2 bg-blue-50/50 px-3 py-2 rounded-lg"
+                      >
+                         + Add Subject
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <AnimatePresence>
               {formData.academicStatus === "Bachelor's" && (
@@ -320,6 +445,11 @@ export default function LeadQuestionnaire() {
         if (formData.academicStatus === "Bachelor's") {
           const cgpaNum = parseFloat(formData.cgpa);
           return !isNaN(cgpaNum) && cgpaNum >= 1.0 && cgpaNum <= 5.0;
+        } else if (formData.academicStatus === "High School") {
+          if (!formData.highSchoolExam) return false;
+          // Must have at least 5 populated subjects
+          const validSubjects = (formData.subjects || []).filter(s => s.name.trim() !== '' && s.grade !== '');
+          return validSubjects.length >= 5;
         }
         return formData.academicStatus !== '';
       }
