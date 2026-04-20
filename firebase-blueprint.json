@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "Application": {
+      "title": "Application",
+      "description": "A candidate's detailed application form.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's ID."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The candidate's full name."
+        },
+        "nigerianCgpa": {
+          "type": "number",
+          "description": "The candidate's CGPA on a 5.0 scale."
+        },
+        "germanGrade": {
+          "type": "number",
+          "description": "The calculated German grade (1.0 - 4.0)."
+        },
+        "transcriptUrl": {
+          "type": "string",
+          "description": "URL to the uploaded transcript in Firebase Storage."
+        },
+        "passportUrl": {
+          "type": "string",
+          "description": "URL to the uploaded passport in Firebase Storage."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "under_review", "approved", "rejected"],
+          "description": "The status of the application."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the application was submitted."
+        }
+      },
+      "required": ["uid", "fullName", "nigerianCgpa", "germanGrade", "transcriptUrl", "passportUrl", "status", "createdAt"]
+    },
+    "Mail": {
+      "title": "Mail",
+      "description": "Emails to be sent by the Trigger Email extension.",
+      "type": "object",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Recipient email address."
+        },
+        "message": {
+          "type": "object",
+          "description": "The email message content.",
+          "properties": {
+            "subject": { "type": "string" },
+            "html": { "type": "string" }
+          }
+        }
+      },
+      "required": ["to", "message"]
+    }
+  },
+  "firestore": {
+    "/applications/{userId}": {
+      "schema": { "$ref": "#/entities/Application" },
+      "description": "Stores candidate applications, keyed by the user's UID."
+    },
+    "/mail/{messageId}": {
+      "schema": { "$ref": "#/entities/Mail" },
+      "description": "Queue for the Trigger Email extension."
+    }
+  }
+}
