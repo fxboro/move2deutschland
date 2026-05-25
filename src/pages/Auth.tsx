@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
+import Logo from '../components/Logo';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -84,9 +85,7 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex w-1/2 relative z-10 flex-col justify-between p-12">
         <div className="relative z-10">
-          <Link to="/" className="font-heading font-bold text-3xl tracking-tight text-white inline-block drop-shadow-lg">
-            move<span className="text-gold">2</span>deutschland
-          </Link>
+          <Logo size="xl" variant="light" className="drop-shadow-lg" />
         </div>
 
         <div className="relative z-10 max-w-lg drop-shadow-lg">
@@ -101,9 +100,7 @@ export default function Auth() {
 
       {/* Right side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-white/95 backdrop-blur-2xl shadow-2xl">
-        <Link to="/" className="absolute top-6 left-6 lg:hidden font-heading font-bold text-xl tracking-tight text-prussian-blue">
-          move<span className="text-gold">2</span>deutschland
-        </Link>
+        <Logo size="lg" variant="dark" className="absolute top-6 left-6 lg:hidden" />
 
         <div className="w-full max-w-md">
           <Link to="/" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-prussian-blue mb-8 transition-colors">
@@ -209,7 +206,7 @@ export default function Auth() {
                     />
                   </div>
                   <label htmlFor="terms" className="ml-2.5 text-sm font-medium text-slate-600 cursor-pointer">
-                    I agree to the <a href="#" className="text-prussian-blue hover:underline">Terms of Service</a> and <a href="#" className="text-prussian-blue hover:underline">Privacy Policy</a>.
+                    I agree to the <Link to="/terms" className="text-prussian-blue hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-prussian-blue hover:underline">Privacy Policy</Link>.
                   </label>
                 </motion.div>
               )}

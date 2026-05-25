@@ -3,6 +3,7 @@ import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { 
   CheckCircle, 
   Clock, 
@@ -266,10 +267,10 @@ export default function Admin() {
       {/* Admin Sidebar */}
       <aside className="w-full md:w-64 bg-slate-900 backdrop-blur-xl border-r border-white/10 text-white flex flex-col md:min-h-screen sticky top-0 z-20 shadow-2xl">
         <div className="p-6">
-          <Link to="/" className="font-heading font-bold text-2xl tracking-tight block mb-12">
-            move<span className="text-gold">2</span>deutschland
-            <span className="block text-[10px] uppercase tracking-widest text-gold/60 mt-1">Admin Control</span>
-          </Link>
+          <div className="mb-12">
+            <Logo size="lg" variant="light" />
+            <span className="block text-[10px] uppercase tracking-widest text-gold/60 mt-1 font-sans">Admin Control</span>
+          </div>
           
           <nav className="space-y-2">
             <button 

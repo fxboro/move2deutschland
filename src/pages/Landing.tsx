@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MessageCircle, 
@@ -8,58 +8,30 @@ import {
   Compass, 
   HeartHandshake, 
   Star, 
-  Menu, 
-  X,
-  LogOut,
-  ChevronDown,
-  User as UserIcon,
-  LayoutDashboard,
-  ShieldAlert,
-  Globe
+  Globe,
+  X
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import LeadQuestionnaire from '../components/LeadQuestionnaire';
 import FAQ from '../components/FAQ';
-import { auth } from '../firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import SocialProof from '../components/SocialProof';
+import PartnerMarquee from '../components/PartnerMarquee';
+import TestimonialCarousel from '../components/TestimonialCarousel';
 
 export default function Landing() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-
-    // Close dropdown when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      unsubscribe();
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    const draft = localStorage.getItem('move2deutschland_lead_form');
+    if (draft) {
+      setHasDraft(true);
+    }
   }, []);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setIsDropdownOpen(false);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans relative overflow-hidden transition-colors duration-300">
       {/* Abstract Background Orbs */}
       <motion.div 
         animate={{ 
@@ -89,167 +61,63 @@ export default function Landing() {
       ></motion.div>
 
       {/* Navigation */}
-      <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl bg-white/10 backdrop-blur-md border border-white/20 text-white py-4 px-6 md:px-8 flex justify-between items-center z-50 rounded-2xl shadow-lg">
-        <div className="font-heading font-bold text-2xl tracking-tight drop-shadow-md">
-          move<span className="text-gold">2</span>deutschland
-        </div>
-        
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-4">
-          {user ? (
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-4 rounded-full hover:bg-white/20 transition-all shadow-sm group"
-              >
-                <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30">
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'
-                  )}
-                </div>
-                <span className="max-w-[120px] truncate">{user.displayName || 'Account'}</span>
-                <ChevronDown size={16} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+      <Navbar />
 
-              <AnimatePresence>
-                {isDropdownOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 overflow-hidden z-[60]"
-                  >
-                    <div className="p-4 border-b border-slate-100">
-                      <p className="text-sm font-bold text-prussian-blue truncate">{user.displayName || 'Candidate'}</p>
-                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                    </div>
-                    <div className="p-2">
-                      <Link 
-                        to="/dashboard" 
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
-                      >
-                        <LayoutDashboard size={18} className="text-prussian-blue" />
-                        Go to Dashboard
-                      </Link>
-                      {user.email === 'chimadayo43@gmail.com' && (
-                        <Link 
-                          to="/admin" 
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-gold hover:bg-gold/5 rounded-xl transition-colors"
-                        >
-                          <ShieldAlert size={18} />
-                          Admin Portal
-                        </Link>
-                      )}
-                      <button 
-                        onClick={handleSignOut}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      >
-                        <LogOut size={18} />
-                        Sign Out
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+      {/* Resume Application Banner */}
+      <AnimatePresence>
+        {hasDraft && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-[95%] max-w-7xl mx-auto mt-28 mb-[-5rem] relative z-40 bg-gold/10 backdrop-blur-md border border-gold/30 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center text-gold gap-4 shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center font-bold text-sm shrink-0">💡</div>
+              <p className="text-sm font-medium text-slate-100">
+                Welcome back! You have an unfinished eligibility check.
+              </p>
             </div>
-          ) : (
-            <>
-              <Link to="/auth" className="bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-6 rounded-full hover:bg-white/20 transition-colors shadow-sm">
-                Login
-              </Link>
-              <Link to="/auth" className="bg-gold/90 backdrop-blur-sm text-prussian-blue font-semibold py-2 px-6 rounded-full hover:bg-yellow-400 transition-colors shadow-sm">
-                Apply Now
-              </Link>
-            </>
-          )}
-        </div>
-
-        {/* Mobile Toggle */}
-        <button 
-          className="md:hidden text-white p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-lg transition-colors"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-expanded={isMobileMenuOpen}
-          aria-controls="mobile-menu"
-          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-        >
-          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-
-        {/* Mobile Dropdown */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div 
-              id="mobile-menu"
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute top-[calc(100%+0.5rem)] left-4 right-4 bg-prussian-blue/95 backdrop-blur-xl border border-white/20 rounded-2xl flex flex-col p-6 gap-4 md:hidden shadow-2xl origin-top"
-              role="menu"
-            >
-              {user ? (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="flex flex-col gap-4"
-                >
-                  <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                    <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30 shrink-0">
-                      {user.photoURL ? (
-                        <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'
-                      )}
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="text-white font-bold truncate">{user.displayName || 'Candidate'}</p>
-                      <p className="text-slate-400 text-xs truncate">{user.email}</p>
-                    </div>
-                  </div>
-                  <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all">
-                    Dashboard
-                  </Link>
-                  <button onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }} role="menuitem" className="w-full text-center bg-red-500/10 text-red-400 border border-red-500/20 font-semibold py-3 px-6 rounded-xl hover:bg-red-500/20 focus:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all">
-                    Sign Out
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="flex flex-col gap-4"
-                >
-                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all">
-                    Login
-                  </Link>
-                  <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-gold/90 text-prussian-blue font-semibold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all">
-                    Apply Now
-                  </Link>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
+            <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
+              <button 
+                onClick={() => {
+                  document.getElementById('questionnaire')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="bg-gold text-prussian-blue font-bold px-5 py-2 rounded-xl text-xs hover:bg-yellow-400 transition-colors shadow-md shrink-0 cursor-pointer"
+              >
+                Continue →
+              </button>
+              <button 
+                onClick={() => setHasDraft(false)}
+                className="text-white/60 hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss banner"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section 
-        className="relative text-white pt-20 pb-40 px-6 md:px-12 overflow-hidden"
+        className="relative text-white pt-20 pb-24 sm:pb-40 px-6 md:px-12 overflow-hidden"
       >
-        {/* Animated Background Image */}
+        {/* Animated Background Image with Ken Burns loop */}
         <motion.div 
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 10, ease: "easeOut" }}
+          animate={{ 
+            scale: [1, 1.05, 1],
+            x: [0, 3, -3, 0],
+            y: [0, -3, 3, 0]
+          }}
+          transition={{ 
+            duration: 20, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
           className="absolute inset-0 z-0"
           style={{ 
-            backgroundImage: 'url("https://images.unsplash.com/photo-1599946347371-68eb71b16afc?q=80&w=2000&auto=format&fit=crop")', 
+            backgroundImage: 'url("/germany_hero_bg.png")', 
             backgroundSize: 'cover', 
             backgroundPosition: 'center' 
           }}
@@ -264,7 +132,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="font-heading text-3xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 mt-12"
+            className="font-heading text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 mt-12"
           >
             Your Global Leap Starts in Germany. <br className="hidden md:block" />
             <motion.span 
@@ -296,15 +164,16 @@ export default function Landing() {
               whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(255,204,0,0.6)" }}
               whileTap={{ scale: 0.95 }}
               onClick={() => document.getElementById('questionnaire')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-gold text-prussian-blue font-bold text-lg py-4 px-10 rounded-full shadow-[0_0_20px_rgba(255,204,0,0.4)] transition-all duration-300 w-full sm:w-auto"
+              className="bg-gold text-prussian-blue font-bold text-lg py-4 px-10 rounded-full shadow-[0_0_20px_rgba(255,204,0,0.4)] transition-all duration-300 w-full sm:w-auto cursor-pointer"
             >
-              Check My Eligibility – 2 Minute Quiz
+              <span className="sm:hidden">Check Eligibility</span>
+              <span className="hidden sm:inline">Check My Eligibility – 2 Minute Quiz</span>
             </motion.button>
             <Link to="/opportunity-card" className="w-full sm:w-auto">
               <motion.button 
                 whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-transparent border-2 border-white text-white font-bold text-lg py-4 px-10 rounded-full transition-all duration-300 w-full"
+                className="bg-transparent border-2 border-white text-white font-bold text-lg py-4 px-10 rounded-full transition-all duration-300 w-full cursor-pointer"
               >
                 Opportunity Card
               </motion.button>
@@ -313,13 +182,23 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Social Proof Stats */}
+      <div className="relative z-20 -mt-16 mb-12">
+        <SocialProof />
+      </div>
+
+      {/* Partner Universities Marquee */}
+      <div className="relative z-10 mb-16">
+        <PartnerMarquee />
+      </div>
+
       {/* Integration Point: Lead Qualification Questionnaire */}
-      <section id="questionnaire" className="relative -mt-24 z-20 px-6 md:px-12 max-w-3xl mx-auto">
+      <section id="questionnaire" className="relative -mt-32 z-20 px-6 md:px-12 max-w-3xl mx-auto">
         <LeadQuestionnaire />
       </section>
 
       {/* The Logic Section */}
-      <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto mt-12">
+      <section id="why-germany" className="py-24 px-6 md:px-12 max-w-7xl mx-auto mt-12">
         <div className="text-center mb-16">
           <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue mb-4">
             Why Germany is the Smart Choice
@@ -336,14 +215,14 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100"
+            whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(0, 49, 83, 0.05)" }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 group transition-all duration-300 cursor-pointer"
           >
-            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6 text-prussian-blue">
+            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6 text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
               <GraduationCap size={32} />
             </div>
             <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">Zero-Tuition</h3>
-            <p className="text-slate-600 leading-relaxed">
+            <p className="text-slate-600 leading-relaxed text-sm">
               Public universities in Germany charge €0 tuition. Invest your money in your life, not just a degree.
             </p>
           </motion.div>
@@ -354,15 +233,15 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100"
+            whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(0, 49, 83, 0.05)" }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 group transition-all duration-300 cursor-pointer"
           >
-            <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center mb-6 text-gold">
+            <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center mb-6 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
               <Briefcase size={32} />
             </div>
-            <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">18-Month Job Guarantee</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Germany gives you 1.5 years to find a professional role after graduation.
+            <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">18-Month Post-Study</h3>
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Germany gives you 1.5 years to find a professional role after graduation, ensuring a smooth career start.
             </p>
           </motion.div>
 
@@ -372,15 +251,15 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100"
+            whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(0, 49, 83, 0.05)" }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 group transition-all duration-300 cursor-pointer"
           >
-            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6 text-prussian-blue">
+            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mb-6 text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
               <TrendingUp size={32} />
             </div>
             <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">700,000+ Vacancies</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Germany is looking for its next generation of engineers, IT experts, and healthcare leaders.
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Germany is looking for its next generation of engineers, IT experts, and healthcare leaders to fill talent gaps.
             </p>
           </motion.div>
 
@@ -390,15 +269,15 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100"
+            whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(0, 49, 83, 0.05)" }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 group transition-all duration-300 cursor-pointer"
           >
-            <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center mb-6 text-gold">
+            <div className="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center mb-6 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
               <Globe size={32} />
             </div>
-            <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">Citizenship</h3>
-            <p className="text-slate-600 leading-relaxed">
-              Germany offers a partway to citizenship in 5years, what an opportunity to contribute to Europe's economic powerhouse and the priviledge of carry a top-tier passport.
+            <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-4">Citizenship Path</h3>
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Germany offers a pathway to citizenship in 5 years—what an opportunity to contribute and hold a top-tier passport.
             </p>
           </motion.div>
         </div>
@@ -416,7 +295,8 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl text-slate-800">
+          {/* Table for Desktop and Tablet */}
+          <div className="hidden sm:block bg-white rounded-2xl overflow-hidden shadow-2xl text-slate-800">
             <div className="grid grid-cols-3 border-b border-slate-200">
               <div className="p-4 md:p-6 bg-slate-50 font-heading font-bold text-sm md:text-lg flex items-center justify-center text-center">Feature</div>
               <div className="p-4 md:p-6 bg-slate-100 font-heading font-bold text-sm md:text-lg text-center border-l border-slate-200">UK / USA<br/><span className="text-xs md:text-sm text-red-500 font-normal">High Risk</span></div>
@@ -425,7 +305,7 @@ export default function Landing() {
             
             <div className="grid grid-cols-3 border-b border-slate-100 relative hover:bg-blue-50 hover:shadow-md hover:scale-[1.02] hover:z-10 transition-all duration-300 cursor-pointer">
               <div className="p-4 md:p-6 font-medium flex items-center text-sm md:text-base">Tuition Fees</div>
-              <div className="p-4 md:p-6 border-l border-slate-100 flex items-center justify-center text-center text-red-600 font-semibold text-sm md:text-base">£15k - $40k / year</div>
+              <div className="p-4 md:p-6 border-l border-slate-100 flex items-center justify-center text-center text-red-650 font-semibold text-sm md:text-base">£15k - $40k / year</div>
               <div className="p-4 md:p-6 border-l border-slate-100 bg-gold/5 flex items-center justify-center text-center text-green-600 font-bold text-lg md:text-xl">€0</div>
             </div>
 
@@ -437,7 +317,7 @@ export default function Landing() {
 
             <div className="grid grid-cols-3 border-b border-slate-100 relative hover:bg-blue-50 hover:shadow-md hover:scale-[1.02] hover:z-10 transition-all duration-300 cursor-pointer">
               <div className="p-4 md:p-6 font-medium flex items-center text-sm md:text-base">Job Market</div>
-              <div className="p-4 md:p-6 border-l border-slate-100 flex items-center justify-center text-center text-slate-600 text-sm md:text-base">Saturated</div>
+              <div className="p-4 md:p-6 border-l border-slate-100 flex items-center justify-center text-center text-slate-650 text-sm md:text-base">Saturated</div>
               <div className="p-4 md:p-6 border-l border-slate-100 bg-gold/5 flex items-center justify-center text-center text-prussian-blue font-semibold text-sm md:text-base">700k+ Openings</div>
             </div>
 
@@ -447,8 +327,74 @@ export default function Landing() {
               <div className="p-4 md:p-6 border-l border-slate-100 bg-gold/5 flex items-center justify-center text-center text-green-600 font-bold text-sm md:text-base">Clear & Structured</div>
             </div>
           </div>
+
+          {/* Cards for Mobile Devices (< 640px) */}
+          <div className="sm:hidden space-y-6 text-slate-800">
+            {/* Card 1 */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+              <h3 className="font-heading font-bold text-lg text-prussian-blue mb-4 border-b border-slate-100 pb-2">Tuition Fees</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">UK / USA (Risk)</p>
+                  <p className="text-sm font-semibold text-red-600 mt-1">£15k-40k / yr</p>
+                </div>
+                <div className="bg-gold/10 p-3 rounded-xl text-center border border-gold/20">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Germany (Stable)</p>
+                  <p className="text-lg font-extrabold text-green-600 mt-1">€0</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+              <h3 className="font-heading font-bold text-lg text-prussian-blue mb-4 border-b border-slate-100 pb-2">Post-Study Visa</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">UK / USA (Risk)</p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">Strict/Costly</p>
+                </div>
+                <div className="bg-gold/10 p-3 rounded-xl text-center border border-gold/20">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Germany (Stable)</p>
+                  <p className="text-xs font-bold text-prussian-blue mt-1">18 Mths Guar.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+              <h3 className="font-heading font-bold text-lg text-prussian-blue mb-4 border-b border-slate-100 pb-2">Job Market</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">UK / USA (Risk)</p>
+                  <p className="text-xs text-slate-500 mt-1 font-medium">Saturated</p>
+                </div>
+                <div className="bg-gold/10 p-3 rounded-xl text-center border border-gold/20">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Germany (Stable)</p>
+                  <p className="text-xs font-bold text-prussian-blue mt-1">700k+ Openings</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4 */}
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+              <h3 className="font-heading font-bold text-lg text-prussian-blue mb-4 border-b border-slate-100 pb-2">Path to PR</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded-xl text-center">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">UK / USA (Risk)</p>
+                  <p className="text-xs font-semibold text-red-650 mt-1">Uncertain</p>
+                </div>
+                <div className="bg-gold/10 p-3 rounded-xl text-center border border-gold/20">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Germany (Stable)</p>
+                  <p className="text-xs font-bold text-green-600 mt-1">Clear & Fast</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Gradient divider */}
+      <div className="h-24 bg-gradient-to-b from-prussian-blue to-slate-50"></div>
 
       {/* Why Move2Deutschland Section */}
       <section className="py-24 px-6 md:px-12 bg-slate-50">
@@ -469,13 +415,14 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5 }}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow"
+              whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(255, 204, 0, 0.2)" }}
+              className="bg-white p-8 rounded-2xl shadow-md border border-slate-100 text-center transition-all duration-300 group cursor-pointer"
             >
-              <div className="w-16 h-16 bg-blue-50 text-prussian-blue rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-blue-50 text-prussian-blue rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
                 <Compass size={32} />
               </div>
               <h3 className="font-heading text-xl font-bold text-prussian-blue mb-3">Expert Guidance</h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-slate-600 leading-relaxed text-sm">
                 Navigate the complex German university system and visa process with consultants who have successfully done it themselves.
               </p>
             </motion.div>
@@ -486,13 +433,14 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow"
+              whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(255, 204, 0, 0.2)" }}
+              className="bg-white p-8 rounded-2xl shadow-md border border-slate-100 text-center transition-all duration-300 group cursor-pointer"
             >
-              <div className="w-16 h-16 bg-yellow-50 text-gold rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-yellow-50 text-gold rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
                 <HeartHandshake size={32} />
               </div>
               <h3 className="font-heading text-xl font-bold text-prussian-blue mb-3">Personalized Support</h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-slate-600 leading-relaxed text-sm">
                 From university selection to finding accommodation and opening your blocked account, we are with you at every step.
               </p>
             </motion.div>
@@ -503,13 +451,14 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow"
+              whileHover={{ y: -8, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(255, 204, 0, 0.2)" }}
+              className="bg-white p-8 rounded-2xl shadow-md border border-slate-100 text-center transition-all duration-300 group cursor-pointer"
             >
-              <div className="w-16 h-16 bg-blue-50 text-prussian-blue rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 bg-blue-50 text-prussian-blue rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
                 <Star size={32} />
               </div>
               <h3 className="font-heading text-xl font-bold text-prussian-blue mb-3">Proven Success Stories</h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-slate-600 leading-relaxed text-sm">
                 Join hundreds of Nigerian students who have successfully transitioned to tuition-free education and thriving careers in Germany.
               </p>
             </motion.div>
@@ -517,26 +466,25 @@ export default function Landing() {
         </div>
       </section>
 
+      <div className="h-24 bg-gradient-to-b from-slate-50 to-slate-900"></div>
+
+      {/* Testimonial Carousel */}
+      <TestimonialCarousel />
+
+      <div className="h-24 bg-gradient-to-b from-slate-900 to-white"></div>
+
       {/* FAQ Section */}
       <FAQ />
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-12 px-6 md:px-12 text-center">
-        <div className="font-heading font-bold text-2xl tracking-tight text-white mb-6">
-          move<span className="text-gold">2</span>deutschland
-        </div>
-        <p className="mb-6 max-w-md mx-auto">
-          Empowering Nigerian students to achieve their global career goals through tuition-free education in Germany.
-        </p>
-        <p className="text-sm">
-          © {new Date().getFullYear()} Move2Deutschland. All rights reserved.
-        </p>
-      </footer>
+      <Footer />
 
       {/* Floating WhatsApp Widget */}
       <a 
-        href="#" 
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#25D366] text-white py-3 px-5 rounded-full shadow-[0_4px_14px_rgba(37,211,102,0.4)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.6)] hover:-translate-y-1 transition-all duration-300"
+        href="https://wa.me/2348123456789?text=Hello%20Move2Deutschland%2C%20I%20am%20interested%20in%20relocating%20to%20Germany.%20Can%20you%20help%2520me%3F" 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#25D366] text-white py-3 px-5 rounded-full shadow-[0_4px_14px_rgba(37,211,102,0.4)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.6)] hover:-translate-y-1 transition-all duration-300 cursor-pointer"
       >
         <MessageCircle size={24} />
         <span className="font-medium hidden sm:block">

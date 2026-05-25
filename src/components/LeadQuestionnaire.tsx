@@ -13,6 +13,7 @@ interface FormData {
   highSchoolExam: string;
   subjects: SubjectGrade[];
   cgpa: string;
+  bachelorProgram: string;
   fieldOfInterest: string;
   financialReadiness: string;
   whatsapp: string;
@@ -43,6 +44,7 @@ export default function LeadQuestionnaire() {
       highSchoolExam: '',
       subjects: [],
       cgpa: '',
+      bachelorProgram: '',
       fieldOfInterest: '',
       financialReadiness: '',
       whatsapp: '',
@@ -138,6 +140,7 @@ export default function LeadQuestionnaire() {
                       // Clear CGPA if they switch away from Bachelor's
                       if (status !== "Bachelor's") {
                         updateForm('cgpa', '');
+                        updateForm('bachelorProgram', '');
                       }
                       if (status !== "High School") {
                         updateForm('highSchoolExam', '');
@@ -260,9 +263,10 @@ export default function LeadQuestionnaire() {
                   initial={{ opacity: 0, height: 0, marginTop: 0 }}
                   animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
                   exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  className="overflow-hidden"
+                  className="overflow-hidden space-y-4"
                 >
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">CGPA (e.g., 3.8 on a 5.0 scale)</label>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">CGPA (e.g., 3.8 on a 5.0 scale)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -280,6 +284,17 @@ export default function LeadQuestionnaire() {
                   {formData.cgpa && (parseFloat(formData.cgpa) < 1.0 || parseFloat(formData.cgpa) > 5.0) && (
                     <p className="text-red-500 text-xs mt-2 font-medium">Please enter a valid CGPA between 1.0 and 5.0</p>
                   )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Bachelor's Program / Course Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. B.Sc Computer Science"
+                      value={formData.bachelorProgram}
+                      onChange={(e) => updateForm('bachelorProgram', e.target.value)}
+                      className="w-full p-4 rounded-xl border focus:ring-2 outline-none transition-all font-sans border-slate-200 focus:border-prussian-blue focus:ring-prussian-blue/20"
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -444,7 +459,8 @@ export default function LeadQuestionnaire() {
       case 1: {
         if (formData.academicStatus === "Bachelor's") {
           const cgpaNum = parseFloat(formData.cgpa);
-          return !isNaN(cgpaNum) && cgpaNum >= 1.0 && cgpaNum <= 5.0;
+          const isCgpaValid = !isNaN(cgpaNum) && cgpaNum >= 1.0 && cgpaNum <= 5.0;
+          return isCgpaValid && (formData.bachelorProgram || '').trim() !== '';
         } else if (formData.academicStatus === "High School") {
           if (!formData.highSchoolExam) return false;
           // Must have at least 5 populated subjects
@@ -465,7 +481,7 @@ export default function LeadQuestionnaire() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-10 border border-slate-100 relative overflow-hidden min-h-[450px] flex flex-col">
+    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-5 md:p-8 border border-slate-100 dark:border-slate-800 relative overflow-hidden flex flex-col transition-all">
       {/* Progress Bar */}
       {step < 5 && (
         <div className="mb-8">
@@ -504,7 +520,7 @@ export default function LeadQuestionnaire() {
 
       {/* Navigation Buttons */}
       {step < 5 && (
-        <div className="mt-12 flex justify-between items-center pt-6 border-t border-slate-100">
+        <div className="mt-6 flex justify-between items-center pt-4 border-t border-slate-100">
           <button
             onClick={prevStep}
             disabled={step === 1}

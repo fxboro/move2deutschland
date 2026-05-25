@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { 
   CheckCircle2, 
   Circle, 
@@ -18,7 +19,9 @@ import {
   ShieldAlert,
   Edit2,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Landmark,
+  ShieldCheck
 } from 'lucide-react';
 import { auth, db, storage } from '../firebase';
 import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from 'firebase/auth';
@@ -28,6 +31,9 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 export default function Dashboard() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'application' | 'resources'>('application');
+  const [appStatus, setAppStatus] = useState<string>('pending');
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   // Form & Calculation State
   const [cgpa, setCgpa] = useState('');
@@ -85,6 +91,7 @@ export default function Dashboard() {
             const data = userDoc.data();
             profileData = data.profile || {};
             docData = data.documents || {};
+            setAppStatus(data.status || 'pending');
           }
 
           // Sync local storage data if exists (for first-time users coming from landing page)
@@ -250,9 +257,8 @@ export default function Dashboard() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeDocId || !user) return;
+  const uploadFile = async (file: File, docId: string) => {
+    if (!user) return;
 
     const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
@@ -260,14 +266,14 @@ export default function Dashboard() {
       return;
     }
 
-    setUploadingDoc(activeDocId);
-    const storageRef = ref(storage, `users/${user.uid}/documents/${activeDocId}_${file.name}`);
+    setUploadingDoc(docId);
+    const storageRef = ref(storage, `users/${user.uid}/documents/${docId}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on('state_changed', 
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(prev => ({ ...prev, [activeDocId]: progress }));
+        setUploadProgress(prev => ({ ...prev, [docId]: progress }));
       },
       (error) => {
         console.error("Upload failed:", error);
@@ -280,7 +286,7 @@ export default function Dashboard() {
         const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, {
           documents: {
-            [activeDocId]: {
+            [docId]: {
               url: downloadURL,
               status: 'pending',
               uploadedAt: new Date().toISOString()
@@ -288,14 +294,48 @@ export default function Dashboard() {
           }
         }, { merge: true });
 
-        setDocStatuses(prev => ({ ...prev, [activeDocId]: 'pending' }));
+        setDocStatuses(prev => ({ ...prev, [docId]: 'pending' }));
         setUploadingDoc(null);
-        setUploadProgress(prev => ({ ...prev, [activeDocId]: 0 }));
+        setUploadProgress(prev => ({ ...prev, [docId]: 0 }));
         
         // Reset file input
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     );
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && activeDocId) {
+      uploadFile(file, activeDocId);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, docId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (docStatuses[docId] !== 'verified') {
+      setDragActiveId(docId);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, docId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveId(null);
+
+    if (docStatuses[docId] === 'verified' || uploadingDoc === docId) return;
+
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      uploadFile(file, docId);
+    }
   };
 
   const handleSubmitApplication = async () => {
@@ -316,6 +356,8 @@ export default function Dashboard() {
         },
         status: 'submitted'
       }, { merge: true });
+
+      setAppStatus('submitted');
 
       // Trigger Email Extension via 'mail' collection
       await addDoc(collection(db, 'mail'), {
@@ -343,13 +385,64 @@ export default function Dashboard() {
     }
   };
 
-  const steps = [
-    { id: 1, title: 'Eligibility', status: 'completed' },
-    { id: 2, title: 'Document Upload', status: 'current' },
-    { id: 3, title: 'Expert Review', status: 'upcoming' },
-    { id: 4, title: 'Visa Prep', status: 'upcoming' },
-    { id: 5, title: 'Pre-Departure', status: 'upcoming' },
-  ];
+  const getDynamicSteps = () => {
+    const isSubmitted = ['submitted', 'reviewing', 'approved'].includes(appStatus);
+    const hasUploadedAny = Object.values(docStatuses).some(status => status === 'pending' || status === 'verified');
+    const hasUploadedAll = Object.values(docStatuses).every(status => status === 'pending' || status === 'verified');
+    
+    const step1Status = 'completed'; // Eligibility always completed
+    
+    let step2Status: 'completed' | 'current' | 'upcoming' = 'current';
+    if (isSubmitted || hasUploadedAll) {
+      step2Status = 'completed';
+    } else if (hasUploadedAny) {
+      step2Status = 'current';
+    }
+    
+    let step3Status: 'completed' | 'current' | 'upcoming' = 'upcoming';
+    if (appStatus === 'approved') {
+      step3Status = 'completed';
+    } else if (appStatus === 'submitted' || appStatus === 'reviewing') {
+      step3Status = 'current';
+    } else if (step2Status === 'completed') {
+      step3Status = 'current';
+    }
+    
+    let step4Status: 'completed' | 'current' | 'upcoming' = 'upcoming';
+    if (appStatus === 'approved') {
+      step4Status = 'current';
+    }
+    
+    let step5Status: 'completed' | 'current' | 'upcoming' = 'upcoming';
+    
+    return [
+      { id: 1, title: 'Eligibility', status: step1Status },
+      { id: 2, title: 'Document Upload', status: step2Status },
+      { id: 3, title: 'Expert Review', status: step3Status },
+      { id: 4, title: 'Visa Prep', status: step4Status },
+      { id: 5, title: 'Pre-Departure', status: step5Status },
+    ];
+  };
+
+  const steps = getDynamicSteps();
+
+  const getProgressPercentage = () => {
+    const completedCount = steps.filter(s => s.status === 'completed').length;
+    if (completedCount <= 1) return 0;
+    if (completedCount === 2) return 25;
+    if (completedCount === 3) return 50;
+    if (completedCount === 4) return 75;
+    if (completedCount === 5) return 100;
+    return 0;
+  };
+
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    const name = editProfileData.displayName.split(' ')[0] || user?.displayName?.split(' ')[0] || 'Candidate';
+    if (hrs < 12) return `Good morning, ${name} 👋`;
+    if (hrs < 18) return `Good afternoon, ${name} 👋`;
+    return `Good evening, ${name} 👋`;
+  };
 
   const documentsList = [
     { id: 'waec', name: 'WAEC Certificate', icon: FileCheck },
@@ -359,39 +452,64 @@ export default function Dashboard() {
 
   const getStatusConfig = (status: string) => {
     switch(status) {
-      case 'verified': return { color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', label: 'Verified' };
-      case 'pending': return { color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200', label: 'Pending Review' };
-      default: return { color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200', label: 'Missing' };
+      case 'verified': return { color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-800/40', label: 'Verified' };
+      case 'pending': return { color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-800/40', label: 'Pending Review' };
+      default: return { color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800/40', label: 'Missing' };
     }
   };
 
   const resources = [
-    { id: 1, title: 'Blocked Account Guide', description: 'Step-by-step instructions for opening your Sperrkonto.', size: '2.4 MB' },
-    { id: 2, title: 'Health Insurance Overview', description: 'Comparing public vs. private insurance options.', size: '1.8 MB' },
+    { id: 1, title: 'Blocked Account Guide', description: 'Step-by-step instructions for opening your Sperrkonto.', size: '2.4 MB', icon: Landmark, isNew: true },
+    { id: 2, title: 'Health Insurance Overview', description: 'Comparing public vs. private insurance options.', size: '1.8 MB', icon: ShieldCheck, isNew: false },
+    { id: 3, title: 'Visa Application Checklist', description: 'Official documents required for German embassy appointment.', size: '1.2 MB', icon: FileCheck, isNew: true },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 dark:from-slate-950 dark:via-prussian-blue/20 dark:to-slate-900 text-slate-900 dark:text-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden transition-colors duration-300">
       {/* Abstract Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-gold/10 blur-[100px] pointer-events-none z-0"></div>
 
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-prussian-blue/90 backdrop-blur-xl border-r border-white/10 text-white flex flex-col md:min-h-screen sticky top-0 z-20 shadow-2xl">
+      {/* Mobile Top Header */}
+      <div className="md:hidden bg-prussian-blue text-white py-4 px-6 flex justify-between items-center z-20 shadow-md">
+        <Logo size="md" variant="light" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar (Desktop Only) */}
+      <aside className="hidden md:flex w-64 bg-prussian-blue/95 dark:bg-black/40 backdrop-blur-3xl border-r border-white/10 dark:border-slate-800 text-white flex-col min-h-screen sticky top-0 z-20 shadow-2xl transition-all">
         <div className="p-6">
-          <Link to="/" className="font-heading font-bold text-2xl tracking-tight block mb-12">
-            move<span className="text-gold">2</span>deutschland
-          </Link>
+          <div className="mb-12">
+            <Logo size="lg" variant="light" />
+          </div>
           
           <nav className="space-y-2">
-            <a href="#" className="flex items-center gap-3 px-4 py-3 bg-white/10 rounded-xl font-medium text-white transition-colors">
+            <button 
+              onClick={() => setActiveTab('application')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'application' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+              }`}
+            >
               <User size={20} />
               My Application
-            </a>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-white/5 rounded-xl font-medium transition-colors">
+            </button>
+            <button 
+              onClick={() => setActiveTab('resources')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'resources' ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+              }`}
+            >
               <BookOpen size={20} />
               Resources
-            </a>
+            </button>
           </nav>
         </div>
         
@@ -415,7 +533,7 @@ export default function Dashboard() {
                 <p className="text-sm font-bold truncate">{user?.displayName || 'Candidate'}</p>
                 <button 
                   onClick={() => setIsEditProfileOpen(true)}
-                  className="text-slate-400 hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-white transition-colors cursor-pointer"
                   title="Edit Profile"
                 >
                   <Edit2 size={14} />
@@ -428,7 +546,7 @@ export default function Dashboard() {
             <ArrowLeft size={18} />
             Exit to Home
           </Link>
-          <button onClick={handleSignOut} className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors text-sm font-medium w-full text-left">
+          <button onClick={handleSignOut} className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors text-sm font-medium w-full text-left cursor-pointer">
             <LogOut size={18} />
             Sign Out
           </button>
@@ -436,33 +554,33 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full relative z-10">
+      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full relative z-10 pb-40 md:pb-12">
         <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue mb-2">
-              Candidate Dashboard
+            <h1 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue dark:text-white mb-2">
+              {getGreeting()}
             </h1>
-            <p className="text-slate-500">Track your progress and manage your application documents.</p>
+            <p className="text-slate-500 dark:text-slate-400">Track your progress and manage your application documents.</p>
           </div>
           <button 
             onClick={handleSubmitApplication}
             disabled={isSubmitting}
-            className="hidden md:flex items-center gap-2 bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50"
+            className="hidden md:flex items-center gap-2 bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 cursor-pointer shadow-md shadow-gold/20"
           >
             {isSubmitting ? 'Submitting...' : <><Send size={18} /> Submit Application</>}
           </button>
         </header>
 
         {/* Application Progress Tracker */}
-        <section className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 p-6 md:p-8 mb-8">
-          <h2 className="font-heading text-xl font-bold text-prussian-blue mb-8">Application Progress</h2>
+        <section className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/50 dark:border-white/10 p-6 md:p-8 mb-8 transition-all">
+          <h2 className="font-heading text-xl font-bold text-prussian-blue dark:text-gold mb-8">Application Progress</h2>
           
           <div className="relative">
             {/* Progress Line */}
             <div className="absolute top-5 left-0 w-full h-1 bg-slate-100 rounded-full hidden md:block"></div>
             <div 
               className="absolute top-5 left-0 h-1 bg-gold rounded-full hidden md:block transition-all duration-1000"
-              style={{ width: '25%' }}
+              style={{ width: `${getProgressPercentage()}%` }}
             ></div>
 
             <div className="flex flex-col md:flex-row justify-between relative z-10 gap-6 md:gap-0">
@@ -493,11 +611,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <section className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <section id="application" className={`lg:col-span-2 space-y-8 ${activeTab === 'application' ? 'block' : 'hidden md:block'}`}>
             
             {/* Academic Profile & Grade Conversion */}
-            <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 p-6 md:p-8">
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/50 dark:border-white/10 p-6 md:p-8 transition-all">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-prussian-blue flex items-center justify-center">
                   <Calculator size={20} />
@@ -587,14 +705,21 @@ export default function Dashboard() {
                     <motion.div 
                       key={docItem.id}
                       whileHover={{ y: -2 }}
-                      className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md relative overflow-hidden"
+                      onDragOver={(e) => handleDragOver(e, docItem.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, docItem.id)}
+                      className={`rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md relative overflow-hidden ${
+                        dragActiveId === docItem.id 
+                          ? 'border-gold border-dashed bg-gold/5 scale-[1.01] dark:bg-gold/10' 
+                          : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'
+                      }`}
                     >
                       {isUploading && (
-                        <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-100 z-20">
+                        <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-100 dark:bg-slate-800 z-20">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
-                            className="h-full bg-prussian-blue shadow-[0_0_10px_rgba(0,49,83,0.3)]"
+                            className="h-full bg-prussian-blue dark:bg-gold shadow-[0_0_10px_rgba(0,49,83,0.3)]"
                           />
                         </div>
                       )}
@@ -604,7 +729,7 @@ export default function Dashboard() {
                           <docItem.icon size={24} />
                         </div>
                         <div>
-                          <h3 className="font-bold text-prussian-blue">{docItem.name}</h3>
+                          <h3 className="font-bold text-prussian-blue dark:text-white">{docItem.name}</h3>
                           <div className="flex items-center gap-2 mt-1">
                             <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md border ${config.bg} ${config.color} ${config.border}`}>
                               {config.label}
@@ -613,15 +738,19 @@ export default function Dashboard() {
                         </div>
                       </div>
 
+                      <div className="hidden lg:block text-xs text-slate-400 font-medium relative z-10">
+                        {dragActiveId === docItem.id ? 'Drop file here' : 'Drag & drop PDF/JPG here'}
+                      </div>
+
                       <button 
                         onClick={() => handleUploadClick(docItem.id)}
                         disabled={status === 'verified' || isUploading}
-                        className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors relative z-10 ${
+                        className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors relative z-10 cursor-pointer ${
                           status === 'verified' 
-                            ? 'bg-slate-50 text-slate-400 cursor-not-allowed' 
+                            ? 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed' 
                             : isUploading
-                              ? 'bg-blue-50 text-prussian-blue cursor-wait'
-                              : 'bg-prussian-blue text-white hover:bg-prussian-blue/90'
+                              ? 'bg-blue-50 dark:bg-slate-800 text-prussian-blue dark:text-gold cursor-wait'
+                              : 'bg-prussian-blue text-white hover:bg-prussian-blue/90 dark:bg-gold dark:text-prussian-blue dark:hover:bg-yellow-400'
                         }`}
                       >
                         {status === 'verified' ? 'Uploaded' : isUploading ? `Uploading ${Math.round(progress)}%` : <><UploadCloud size={16} /> Upload</>}
@@ -632,53 +761,77 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Mobile Submit Button */}
-            <button 
-              onClick={handleSubmitApplication}
-              disabled={isSubmitting}
-              className="w-full md:hidden flex items-center justify-center gap-2 bg-gold text-prussian-blue font-bold py-4 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? 'Submitting...' : <><Send size={18} /> Submit Application</>}
-            </button>
+            {/* Mobile Sticky Submit Button Bar */}
+            <div className="md:hidden fixed bottom-[56px] left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/80 p-4 z-30 flex justify-center items-center shadow-lg">
+              <button 
+                onClick={handleSubmitApplication}
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 bg-gold text-prussian-blue font-bold py-3.5 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 shadow-md shadow-gold/20 cursor-pointer"
+              >
+                {isSubmitting ? 'Submitting...' : <><Send size={18} /> Submit Application</>}
+              </button>
+            </div>
 
           </section>
 
           {/* Resource Hub */}
-          <section className="space-y-6">
-            <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 p-6">
+          <section id="resources" className={`space-y-6 ${activeTab === 'resources' ? 'block' : 'hidden md:block'}`}>
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/50 dark:border-white/10 p-6 transition-all">
               <div className="mb-4">
-                <h2 className="font-heading text-xl font-bold text-prussian-blue">Resource Hub</h2>
-                <p className="text-sm text-slate-500 mt-1">Essential guides for your journey.</p>
+                <h2 className="font-heading text-xl font-bold text-prussian-blue dark:text-gold">Resource Hub</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Essential guides for your journey.</p>
               </div>
 
               <div className="grid gap-4">
-                {resources.map((resource) => (
-                  <div key={resource.id} className="bg-white/80 rounded-2xl p-5 shadow-sm border border-slate-100 group hover:border-gold/50 transition-colors">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-50/80 text-prussian-blue flex items-center justify-center">
-                        <BookOpen size={20} />
+                {resources.map((resource) => {
+                  const IconComponent = resource.icon;
+                  return (
+                    <div key={resource.id} className="bg-white/85 dark:bg-slate-900/85 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 group hover:border-gold/50 dark:hover:border-gold/40 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50/80 dark:bg-slate-800 text-prussian-blue dark:text-gold flex items-center justify-center relative">
+                          <IconComponent size={20} />
+                          {resource.isNew && (
+                            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold"></span>
+                            </span>
+                          )}
+                        </div>
+                        <button className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-prussian-blue dark:hover:text-gold flex items-center justify-center group-hover:bg-gold group-hover:text-prussian-blue transition-all duration-300 group-hover:scale-110 cursor-pointer">
+                          <Download size={16} className="group-hover:translate-y-0.5 transition-transform duration-200" />
+                        </button>
                       </div>
-                      <button className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-gold group-hover:text-prussian-blue transition-colors">
-                        <Download size={16} />
-                      </button>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-prussian-blue dark:text-white text-sm">{resource.title}</h3>
+                        {resource.isNew && (
+                          <span className="bg-gold/10 text-gold border border-gold/20 text-[9px] font-extrabold py-0.5 px-2 rounded-full uppercase tracking-wider scale-90">
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">{resource.description}</p>
+                      <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
+                        <FileText size={12} /> PDF • {resource.size}
+                      </div>
                     </div>
-                    <h3 className="font-bold text-prussian-blue text-sm mb-1">{resource.title}</h3>
-                    <p className="text-xs text-slate-500 mb-3 line-clamp-2">{resource.description}</p>
-                    <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
-                      <FileText size={12} /> PDF • {resource.size}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Need Help Card */}
-            <div className="bg-gradient-to-br from-prussian-blue/90 to-slate-800/90 backdrop-blur-xl border border-white/20 rounded-2xl p-6 text-white mt-6 shadow-xl">
+            <div className="bg-gradient-to-br from-prussian-blue/90 to-slate-800/90 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-2xl p-6 text-white mt-6 shadow-xl">
               <h3 className="font-heading font-bold text-lg mb-2">Need Assistance?</h3>
               <p className="text-sm text-slate-300 mb-4">Our expert consultants are available to help you with your application.</p>
-              <button className="w-full bg-gold text-prussian-blue font-bold py-2.5 rounded-xl hover:bg-yellow-400 transition-colors text-sm shadow-md">
-                Contact Support
-              </button>
+              <a 
+                href="https://wa.me/2348123456789?text=Hello%20Move2Deutschland%20Support" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <button className="w-full bg-gold text-prussian-blue font-bold py-2.5 rounded-xl hover:bg-yellow-400 transition-colors text-sm shadow-md cursor-pointer">
+                  Contact Support
+                </button>
+              </a>
             </div>
           </section>
         </div>
@@ -690,7 +843,7 @@ export default function Dashboard() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 w-full max-w-md overflow-hidden"
+            className="bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 w-full max-w-md max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center p-6 border-b border-slate-200/50">
               <h3 className="font-heading text-xl font-bold text-prussian-blue">Edit Profile</h3>
@@ -798,6 +951,49 @@ export default function Dashboard() {
           </motion.div>
         </div>
       )}
+
+      {/* Mobile Bottom Tab Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-prussian-blue/95 border-t border-white/10 text-white py-2 px-6 flex justify-around items-center z-40 shadow-2xl backdrop-blur-lg">
+        <button 
+          onClick={() => setActiveTab('application')} 
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold cursor-pointer transition-colors duration-200 ${
+            activeTab === 'application' ? 'text-gold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <User size={20} />
+          <span>Application</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('resources')} 
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold cursor-pointer transition-colors duration-200 ${
+            activeTab === 'resources' ? 'text-gold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <BookOpen size={20} />
+          <span>Resources</span>
+        </button>
+        <button 
+          onClick={() => setIsEditProfileOpen(true)} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-200 cursor-pointer"
+        >
+          <Edit2 size={20} />
+          <span>Edit Profile</span>
+        </button>
+        <Link 
+          to="/" 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-200"
+        >
+          <ArrowLeft size={20} />
+          <span>Exit</span>
+        </Link>
+        <button 
+          onClick={handleSignOut} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-red-400 hover:text-red-300 cursor-pointer"
+        >
+          <LogOut size={20} />
+          <span>Sign Out</span>
+        </button>
+      </div>
     </div>
   );
 }

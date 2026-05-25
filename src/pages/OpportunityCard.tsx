@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Briefcase, GraduationCap, Globe, Clock, Star } from 'lucide-react';
+import { CheckCircle, Briefcase, GraduationCap, Globe, Clock, Star } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function OpportunityCard() {
   useEffect(() => {
@@ -11,17 +13,7 @@ export default function OpportunityCard() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       {/* Header */}
-      <header className="bg-prussian-blue text-white py-4 px-6 md:px-12 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-white hover:text-gold transition-colors">
-            <ArrowLeft size={20} />
-            <span className="font-bold">Back to Home</span>
-          </Link>
-          <div className="font-heading text-xl font-bold tracking-tight">
-            <span className="text-gold">move</span>2deutschland
-          </div>
-        </div>
-      </header>
+      <Navbar isAlwaysSolid={true} />
 
       {/* Hero Section */}
       <section className="relative bg-prussian-blue text-white py-24 px-6 md:px-12 overflow-hidden">
@@ -176,17 +168,7 @@ export default function OpportunityCard() {
       </section>
       
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-12 px-6 md:px-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2 text-white">
-            <Globe className="text-gold" />
-            <span className="font-heading font-bold text-xl tracking-tight">move<span className="text-gold">2</span>deutschland</span>
-          </div>
-          <div className="text-sm">
-            © {new Date().getFullYear()} Move2Deutschland. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
