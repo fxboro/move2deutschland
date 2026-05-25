@@ -21,7 +21,8 @@ import {
   X,
   ArrowLeft,
   Landmark,
-  ShieldCheck
+  ShieldCheck,
+  Compass
 } from 'lucide-react';
 import { auth, db, storage } from '../firebase';
 import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from 'firebase/auth';
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'application' | 'resources'>('application');
   const [appStatus, setAppStatus] = useState<string>('pending');
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [opportunityCardData, setOpportunityCardData] = useState<any>(null);
 
   // Form & Calculation State
   const [cgpa, setCgpa] = useState('');
@@ -92,6 +94,26 @@ export default function Dashboard() {
             profileData = data.profile || {};
             docData = data.documents || {};
             setAppStatus(data.status || 'pending');
+            setOpportunityCardData(data.opportunityCard || null);
+          }
+
+          // Sync Chancenkarte point calculator if exists (for users coming from Opportunity Card quiz)
+          const storedChancenkarte = localStorage.getItem('move2deutschland_chancenkarte_form');
+          if (storedChancenkarte) {
+            try {
+              const parsedChancenkarte = JSON.parse(storedChancenkarte);
+              const opCardData = {
+                ...parsedChancenkarte,
+                calculatedAt: new Date().toISOString()
+              };
+              await setDoc(userDocRef, {
+                opportunityCard: opCardData
+              }, { merge: true });
+              setOpportunityCardData(opCardData);
+              localStorage.removeItem('move2deutschland_chancenkarte_form');
+            } catch (e) {
+              console.error("Error syncing Chancenkarte data:", e);
+            }
           }
 
           // Sync local storage data if exists (for first-time users coming from landing page)
@@ -614,6 +636,59 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <section id="application" className={`lg:col-span-2 space-y-8 ${activeTab === 'application' ? 'block' : 'hidden md:block'}`}>
             
+            {/* Opportunity Card (Chancenkarte) Score Card */}
+            {opportunityCardData && (
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/50 dark:border-white/10 p-6 md:p-8 transition-all space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gold/15 text-gold flex items-center justify-center">
+                      <Compass size={20} />
+                    </div>
+                    <div>
+                      <h2 className="font-heading text-xl font-bold text-prussian-blue dark:text-white">Opportunity Card (Chancenkarte)</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Points assessment for the Germany Job Seeker visa.</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
+                    opportunityCardData.eligible 
+                      ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/40 text-green-700 dark:text-green-400' 
+                      : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40 text-red-700 dark:text-red-400'
+                  }`}>
+                    {opportunityCardData.eligible ? 'Eligible' : 'Ineligible'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center">
+                    <p className="text-4xl font-extrabold text-prussian-blue dark:text-gold font-heading">{opportunityCardData.score}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-bold uppercase tracking-wider">Total Points</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center col-span-2 text-center md:text-left">
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {opportunityCardData.eligible 
+                        ? 'Congratulations! You meet the minimum threshold of 6 points required to apply for the Chancenkarte.' 
+                        : 'You do not meet the minimum 6 points threshold. Try improving German language skills or gaining more certified experience.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
+                  <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3">Points Breakdown:</h4>
+                  <ul className="space-y-2">
+                    {opportunityCardData.breakdown && opportunityCardData.breakdown.map((item: string, idx: number) => (
+                      <li key={idx} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gold"></span>
+                        {item}
+                      </li>
+                    ))}
+                    {(!opportunityCardData.breakdown || opportunityCardData.breakdown.length === 0) && (
+                      <li className="text-sm text-slate-500 dark:text-slate-400 italic">Qualifies directly via full recognition (no points needed).</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             {/* Academic Profile & Grade Conversion */}
             <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/50 dark:border-white/10 p-6 md:p-8 transition-all">
               <div className="flex items-center gap-3 mb-6">
