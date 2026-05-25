@@ -128,7 +128,7 @@ function StarRating({ rating }: { rating: number }) {
         <Star
           key={i}
           size={16}
-          className={i < rating ? 'text-gold fill-gold' : 'text-slate-300'}
+          className={i < rating ? 'text-gold fill-gold' : 'text-slate-300 dark:text-slate-700'}
         />
       ))}
     </div>
@@ -144,7 +144,7 @@ function StoryCard({ story, index }: { key?: React.Key; story: Story; index: num
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.4, delay: index * 0.08 }}
       whileHover={{ y: -8, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)' }}
-      className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 flex flex-col group cursor-default"
+      className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-lg border border-slate-100 dark:border-slate-800/85 flex flex-col group transition-all duration-300 cursor-default"
     >
       {/* Profile & Info Header */}
       <div className="flex items-start gap-4 mb-5">
@@ -157,7 +157,7 @@ function StoryCard({ story, index }: { key?: React.Key; story: Story; index: num
           />
         </div>
         <div className="min-w-0">
-          <h3 className="font-heading text-lg font-bold text-prussian-blue truncate">{story.name}</h3>
+          <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white truncate">{story.name}</h3>
           <span className="inline-flex items-center gap-1 mt-1 py-0.5 px-2.5 rounded-full bg-gold/10 text-gold border border-gold/20 font-bold text-xs uppercase tracking-wider">
             <MapPin size={11} />
             {story.route}
@@ -167,14 +167,14 @@ function StoryCard({ story, index }: { key?: React.Key; story: Story; index: num
 
       {/* Details */}
       <div className="space-y-2 mb-5">
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <GraduationCap size={15} className="text-prussian-blue flex-shrink-0" />
+        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+          <GraduationCap size={15} className="text-prussian-blue dark:text-gold flex-shrink-0" />
           <span className="truncate">{story.university}</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <span className="font-semibold text-prussian-blue">{story.program}</span>
+        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-350">
+          <span className="font-semibold text-prussian-blue dark:text-white">{story.program}</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Calendar size={14} className="flex-shrink-0" />
           <span>Class of {story.year}</span>
           <span className="mx-1">·</span>
@@ -192,7 +192,7 @@ function StoryCard({ story, index }: { key?: React.Key; story: Story; index: num
       {/* Quote */}
       <div className="mt-4 flex-1 relative">
         <Quote size={20} className="text-gold/30 absolute -top-1 -left-1" />
-        <p className="text-slate-600 text-sm leading-relaxed pl-5 italic">
+        <p className="text-slate-600 dark:text-slate-350 text-sm leading-relaxed pl-5 italic">
           "{story.quote}"
         </p>
       </div>
@@ -205,6 +205,11 @@ export default function SuccessStories() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.title = "Success Stories | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Read real success stories of Nigerian students and professionals who successfully relocated to Germany using Move2Deutschland.");
+    }
   }, []);
 
   const filteredStories = stories.filter((story) => {
@@ -216,7 +221,7 @@ export default function SuccessStories() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <Navbar isAlwaysSolid />
 
       {/* ─── Hero Banner ─── */}
@@ -262,7 +267,7 @@ export default function SuccessStories() {
                 className={`py-2 px-5 rounded-full text-sm font-semibold transition-all duration-300 ${
                   activeFilter === filter
                     ? 'bg-gold text-prussian-blue shadow-md scale-105'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:border-gold hover:text-prussian-blue'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 hover:border-gold hover:text-prussian-blue dark:hover:text-gold'
                 }`}
               >
                 {filter}
@@ -290,7 +295,7 @@ export default function SuccessStories() {
                 ))
               ) : (
                 <div className="col-span-full text-center py-20">
-                  <p className="text-slate-400 text-lg">
+                  <p className="text-slate-400 dark:text-slate-500 text-lg">
                     No stories found for this filter. Try another category.
                   </p>
                 </div>
@@ -301,7 +306,7 @@ export default function SuccessStories() {
       </section>
 
       {/* ─── Gradient Divider ─── */}
-      <div className="h-24 bg-gradient-to-b from-slate-50 to-slate-900" />
+      <div className="h-24 bg-gradient-to-b from-slate-50 dark:from-slate-950 to-slate-900" />
 
       {/* ─── Featured Video Section ─── */}
       <section className="py-24 px-6 md:px-12 bg-slate-900">

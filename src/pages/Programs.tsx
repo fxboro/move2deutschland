@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   GraduationCap,
@@ -141,8 +141,17 @@ const includedItems = [
 export default function Programs() {
   const [activeTab, setActiveTab] = useState<'study' | 'opportunity'>('study');
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = "Our Programs | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Explore our relocate to Germany programs. Learn about the Tuition-Free Study Route and the new points-based Opportunity Card (Chancenkarte) visa pathway.");
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <Navbar isAlwaysSolid />
 
       {/* ── Hero Banner ── */}
@@ -199,7 +208,7 @@ export default function Programs() {
               className={`rounded-2xl py-5 px-6 text-lg md:text-xl font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-3 ${
                 activeTab === 'study'
                   ? 'bg-gold text-prussian-blue shadow-lg shadow-gold/20'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                  : 'bg-white dark:bg-slate-900 text-slate-650 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <GraduationCap size={24} />
@@ -213,7 +222,7 @@ export default function Programs() {
               className={`rounded-2xl py-5 px-6 text-lg md:text-xl font-bold transition-all duration-300 cursor-pointer flex items-center justify-center gap-3 ${
                 activeTab === 'opportunity'
                   ? 'bg-gold text-prussian-blue shadow-lg shadow-gold/20'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                  : 'bg-white dark:bg-slate-900 text-slate-650 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <Award size={24} />
@@ -241,18 +250,18 @@ export default function Programs() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
-                  className="bg-white rounded-2xl p-8 md:p-12 shadow-lg border border-slate-100"
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-8 md:p-12 shadow-lg border border-slate-100 dark:border-slate-850"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-prussian-blue">
+                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center text-prussian-blue dark:text-gold">
                       <GraduationCap size={28} />
                     </div>
-                    <h2 className="font-heading text-2xl md:text-3xl font-bold text-prussian-blue">
+                    <h2 className="font-heading text-2xl md:text-3xl font-bold text-prussian-blue dark:text-white">
                       Study in Germany — Tuition-Free
                     </h2>
                   </div>
 
-                  <p className="text-slate-600 leading-relaxed text-base md:text-lg mb-10 max-w-3xl">
+                  <p className="text-slate-605 dark:text-slate-300 leading-relaxed text-base md:text-lg mb-10 max-w-3xl">
                     Germany's public universities charge <strong>€0 tuition</strong> for international students — including Nigerians and other African nationals. 
                     Combine a world-class education with a clear path to permanent residency and a thriving career in Europe.
                   </p>
@@ -261,15 +270,15 @@ export default function Programs() {
                     {/* Benefit 1 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
                       <div className="w-14 h-14 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Banknote size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         Zero Tuition
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Public universities charge no tuition fees
                       </p>
                     </motion.div>
@@ -277,15 +286,15 @@ export default function Programs() {
                     {/* Benefit 2 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
-                      <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4 text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                      <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center mx-auto mb-4 text-prussian-blue dark:text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Clock size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         18-Month Post-Study Visa
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Stay and job-hunt after graduation
                       </p>
                     </motion.div>
@@ -293,15 +302,15 @@ export default function Programs() {
                     {/* Benefit 3 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
                       <div className="w-14 h-14 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Briefcase size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         Work While You Study
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Up to 20 hrs/week during term time
                       </p>
                     </motion.div>
@@ -320,10 +329,10 @@ export default function Programs() {
                   transition={{ duration: 0.5 }}
                   className="text-center mb-14"
                 >
-                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue mb-3">
+                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue dark:text-white mb-3">
                     Your Journey, Step by Step
                   </h2>
-                  <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+                  <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
                     From eligibility check to touchdown in Germany — here's
                     exactly how we get you there.
                   </p>
@@ -357,14 +366,14 @@ export default function Programs() {
                               boxShadow:
                                 '0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(255, 204, 0, 0.15)',
                             }}
-                            className="flex-1 bg-white rounded-2xl p-6 md:p-8 shadow-lg border border-slate-100 transition-all duration-300 cursor-pointer group"
+                            className="flex-1 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-slate-100 dark:border-slate-800 transition-all duration-300 cursor-pointer group"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-slate-950/40 rounded-lg flex items-center justify-center text-prussian-blue dark:text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                                   <Icon size={20} />
                                 </div>
-                                <h3 className="font-heading text-xl font-bold text-prussian-blue">
+                                <h3 className="font-heading text-xl font-bold text-prussian-blue dark:text-white">
                                   {item.title}
                                 </h3>
                               </div>
@@ -372,7 +381,7 @@ export default function Programs() {
                                 {item.duration}
                               </span>
                             </div>
-                            <p className="text-slate-600 leading-relaxed text-sm md:text-base">
+                            <p className="text-slate-600 dark:text-slate-350 leading-relaxed text-sm md:text-base">
                               {item.description}
                             </p>
                           </motion.div>
@@ -400,18 +409,18 @@ export default function Programs() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
-                  className="bg-white rounded-2xl p-8 md:p-12 shadow-lg border border-slate-100"
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-8 md:p-12 shadow-lg border border-slate-100 dark:border-slate-850"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center text-gold">
+                    <div className="w-12 h-12 bg-yellow-50 dark:bg-yellow-950/10 rounded-xl flex items-center justify-center text-gold">
                       <Award size={28} />
                     </div>
-                    <h2 className="font-heading text-2xl md:text-3xl font-bold text-prussian-blue">
+                    <h2 className="font-heading text-2xl md:text-3xl font-bold text-prussian-blue dark:text-white">
                       Germany's Chancenkarte (Opportunity Card)
                     </h2>
                   </div>
 
-                  <p className="text-slate-600 leading-relaxed text-base md:text-lg mb-10 max-w-3xl">
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base md:text-lg mb-10 max-w-3xl">
                     Germany's brand-new <strong>points-based job-search visa</strong> lets skilled professionals 
                     move to Germany for up to one year — <em>without</em> needing a job offer first. 
                     Score at least 6 points and start your German career.
@@ -421,15 +430,15 @@ export default function Programs() {
                     {/* Stat 1 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
                       <div className="w-14 h-14 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Star size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         6 Points Needed
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Minimum threshold to qualify
                       </p>
                     </motion.div>
@@ -437,15 +446,15 @@ export default function Programs() {
                     {/* Stat 2 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
-                      <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4 text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                      <div className="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center mx-auto mb-4 text-prussian-blue dark:text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Clock size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         1-Year Job Search Visa
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Live and search for work in Germany
                       </p>
                     </motion.div>
@@ -453,15 +462,15 @@ export default function Programs() {
                     {/* Stat 3 */}
                     <motion.div
                       whileHover={{ y: -4 }}
-                      className="bg-slate-50 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
+                      className="bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-6 text-center group cursor-pointer transition-all duration-300"
                     >
                       <div className="w-14 h-14 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                         <Shield size={28} />
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                      <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                         No Job Offer Required
                       </h3>
-                      <p className="text-slate-500 text-sm">
+                      <p className="text-slate-550 dark:text-slate-400 text-sm">
                         Enter Germany first, then find work
                       </p>
                     </motion.div>
@@ -480,10 +489,10 @@ export default function Programs() {
                   transition={{ duration: 0.5 }}
                   className="text-center mb-12"
                 >
-                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue mb-3">
+                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue dark:text-white mb-3">
                     How Points Are Earned
                   </h2>
-                  <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+                  <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
                     Collect at least 6 points from the categories below to
                     qualify for your Chancenkarte.
                   </p>
@@ -504,7 +513,7 @@ export default function Programs() {
                           boxShadow:
                             '0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(255, 204, 0, 0.15)',
                         }}
-                        className="bg-white rounded-2xl p-6 md:p-8 shadow-lg border border-slate-100 flex items-start gap-5 transition-all duration-300 cursor-pointer group"
+                        className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-slate-100 dark:border-slate-850 flex items-start gap-5 transition-all duration-300 cursor-pointer group"
                       >
                         {/* Points badge */}
                         <div className="shrink-0 w-14 h-14 rounded-full bg-gold text-prussian-blue flex items-center justify-center font-extrabold text-lg shadow-md shadow-gold/30">
@@ -516,14 +525,14 @@ export default function Programs() {
 
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-prussian-blue group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                            <div className="w-8 h-8 bg-blue-50 dark:bg-slate-950/40 rounded-lg flex items-center justify-center text-prussian-blue dark:text-gold group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                               <Icon size={18} />
                             </div>
-                            <h3 className="font-heading text-lg font-bold text-prussian-blue">
+                            <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white">
                               {item.title}
                             </h3>
                           </div>
-                          <p className="text-slate-600 text-sm leading-relaxed">
+                          <p className="text-slate-650 dark:text-slate-350 text-sm leading-relaxed">
                             {item.description}
                           </p>
                         </div>
@@ -561,10 +570,10 @@ export default function Programs() {
       </AnimatePresence>
 
       {/* ── Gradient divider ── */}
-      <div className="h-24 bg-gradient-to-b from-slate-50 to-white" />
+      <div className="h-24 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900" />
 
       {/* ── What's Included Section ── */}
-      <section className="py-24 px-6 md:px-12 bg-white">
+      <section className="py-24 px-6 md:px-12 bg-white dark:bg-slate-900 transition-colors">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -576,10 +585,10 @@ export default function Programs() {
             <span className="inline-block py-1 px-3 rounded-full bg-gold/10 text-gold border border-gold/20 font-bold text-xs uppercase tracking-wider mb-4">
               Full-Service Support
             </span>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue mb-4">
+            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue dark:text-white mb-4">
               What's Included
             </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+            <p className="text-slate-655 dark:text-slate-400 text-lg max-w-2xl mx-auto">
               Every Move2Deutschland package comes with end-to-end support — so
               you can focus on your future, not paperwork.
             </p>
@@ -594,7 +603,7 @@ export default function Programs() {
               transition={{ duration: 0.6 }}
               className="space-y-5"
             >
-              <h3 className="font-heading text-2xl font-bold text-prussian-blue mb-6">
+              <h3 className="font-heading text-2xl font-bold text-prussian-blue dark:text-white mb-6">
                 What You Get
               </h3>
               {includedItems.map((item, index) => (
@@ -606,10 +615,10 @@ export default function Programs() {
                   transition={{ duration: 0.4, delay: index * 0.06 }}
                   className="flex items-start gap-4"
                 >
-                  <div className="shrink-0 w-7 h-7 rounded-full bg-green-50 flex items-center justify-center mt-0.5">
-                    <CheckCircle2 size={18} className="text-success" />
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center mt-0.5">
+                    <CheckCircle2 size={18} className="text-green-500 dark:text-green-400" />
                   </div>
-                  <span className="text-slate-700 text-base md:text-lg leading-relaxed">
+                  <span className="text-slate-700 dark:text-slate-300 text-base md:text-lg leading-relaxed">
                     {item}
                   </span>
                 </motion.div>
@@ -674,7 +683,7 @@ export default function Programs() {
       </section>
 
       {/* ── Gradient divider ── */}
-      <div className="h-24 bg-gradient-to-b from-white to-prussian-blue" />
+      <div className="h-24 bg-gradient-to-b from-white to-prussian-blue dark:from-slate-900 dark:to-prussian-blue" />
 
       {/* ── CTA Section ── */}
       <section className="py-24 px-6 md:px-12 bg-prussian-blue text-white">

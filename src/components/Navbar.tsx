@@ -18,6 +18,7 @@ import {
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Logo from './Logo';
+import { checkIsAdminSync } from '../utils/auth';
 
 interface NavbarProps {
   isAlwaysSolid?: boolean;
@@ -167,7 +168,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                       <LayoutDashboard size={18} className="text-prussian-blue dark:text-gold" />
                       Go to Dashboard
                     </Link>
-                    {user.email === 'chimadayo43@gmail.com' && (
+                    {checkIsAdminSync(user) && (
                       <Link 
                         to="/admin" 
                         onClick={() => setIsDropdownOpen(false)}
@@ -266,7 +267,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                 <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all">
                   Dashboard
                 </Link>
-                {user.email === 'chimadayo43@gmail.com' && (
+                 {checkIsAdminSync(user) && (
                   <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all">
                     Admin Portal
                   </Link>

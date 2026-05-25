@@ -54,6 +54,12 @@ export default function OpportunityCard() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.title = "Chancenkarte Points Calculator | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Calculate your German Opportunity Card (Chancenkarte) points based on age, education, work experience, and language skills.");
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });

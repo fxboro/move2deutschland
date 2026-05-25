@@ -25,6 +25,7 @@ import {
   Compass
 } from 'lucide-react';
 import { auth, db, storage } from '../firebase';
+import { checkIsAdmin, checkIsAdminSync } from '../utils/auth';
 import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -67,6 +68,12 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    document.title = "Candidate Dashboard | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Track your admission applications, verify document status, and get resources to relocate to Germany on your candidate dashboard.");
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         if (!currentUser.emailVerified) {
@@ -74,7 +81,8 @@ export default function Dashboard() {
           return;
         }
         
-        if (currentUser.email === 'chimadayo43@gmail.com') {
+        const isAdmin = await checkIsAdmin(currentUser);
+        if (isAdmin) {
           navigate('/admin');
           return;
         }
@@ -536,7 +544,7 @@ export default function Dashboard() {
         </div>
         
         <div className="mt-auto p-6">
-          {user?.email === 'chimadayo43@gmail.com' && (
+          {checkIsAdminSync(user) && (
             <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-gold hover:bg-white/5 rounded-xl font-bold transition-colors mb-2">
               <ShieldAlert size={20} />
               Admin Portal

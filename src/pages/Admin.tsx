@@ -4,6 +4,7 @@ import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { checkIsAdmin } from '../utils/auth';
 import { 
   CheckCircle, 
   Clock, 
@@ -33,13 +34,22 @@ export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    document.title = "Admin Panel | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Move2Deutschland Administration Panel for managing applicant pipelines and document verification.");
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.email === 'chimadayo43@gmail.com') {
-        setIsAdmin(true);
-        fetchUsers();
-      } else {
-        navigate('/dashboard'); // Redirect non-admins
+      if (user) {
+        const isAdminUser = await checkIsAdmin(user);
+        if (isAdminUser) {
+          setIsAdmin(true);
+          fetchUsers();
+          return;
+        }
       }
+      navigate('/dashboard'); // Redirect non-admins
     });
     return () => unsubscribe();
   }, [navigate]);
@@ -259,7 +269,7 @@ export default function Admin() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 dark:from-slate-950 dark:via-slate-900/60 dark:to-slate-950 font-sans flex flex-col md:flex-row relative overflow-hidden text-slate-800 dark:text-slate-100 transition-colors duration-300">
       {/* Abstract Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-gold/10 blur-[100px] pointer-events-none z-0"></div>
@@ -313,10 +323,10 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
             <div>
-              <h1 className="font-heading text-3xl font-bold text-prussian-blue flex items-center gap-3">
+              <h1 className="font-heading text-3xl font-bold text-prussian-blue dark:text-white flex items-center gap-3">
                 {activeTab === 'applicants' ? 'Applicant Pipeline' : 'Admin Dashboard'}
               </h1>
-              <p className="text-slate-500 mt-1">
+              <p className="text-slate-500 dark:text-slate-400 mt-1">
                 {activeTab === 'applicants' 
                   ? 'Manage, verify, and communicate with Nigerian candidates.' 
                   : 'Global overview of your application ecosystem.'}
@@ -325,7 +335,7 @@ export default function Admin() {
             <div className="flex gap-3">
               <button 
                 onClick={() => fetchUsers()} 
-                className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-lg shadow-sm border border-slate-200 text-prussian-blue font-bold hover:bg-white transition-all flex items-center gap-2"
+                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 text-prussian-blue dark:text-white font-bold hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center gap-2"
               >
                 <Clock size={16} /> Refresh Data
               </button>
@@ -335,19 +345,19 @@ export default function Admin() {
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {[
-                { label: 'Total Applicants', value: stats.total, icon: User, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Pending Review', value: stats.pending, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-                { label: 'High Priority', value: stats.highPriority, icon: Filter, color: 'text-gold', bg: 'bg-gold/10' },
-                { label: 'Verified Docs', value: stats.verifiedDocs, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+                { label: 'Total Applicants', value: stats.total, icon: User, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-slate-900/40' },
+                { label: 'Pending Review', value: stats.pending, icon: Clock, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-slate-900/40' },
+                { label: 'High Priority', value: stats.highPriority, icon: Filter, color: 'text-gold', bg: 'bg-gold/10 dark:bg-gold/5' },
+                { label: 'Verified Docs', value: stats.verifiedDocs, icon: CheckCircle, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-slate-900/40' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/50">
+                <div key={i} className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/50 dark:border-slate-800/50">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
                       <stat.icon size={24} />
                     </div>
-                    <span className="text-2xl font-bold text-prussian-blue">{stat.value}</span>
+                    <span className="text-2xl font-bold text-prussian-blue dark:text-white">{stat.value}</span>
                   </div>
-                  <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                  <p className="text-sm font-medium text-slate-550 dark:text-slate-400">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -356,14 +366,14 @@ export default function Admin() {
           {activeTab === 'applicants' && (
             <>
               {/* Filters */}
-              <div className="bg-white/60 backdrop-blur-xl p-5 rounded-2xl shadow-sm border border-white/50 mb-8 flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-2 text-slate-600 font-bold">
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-5 rounded-2xl shadow-sm border border-white/50 dark:border-slate-800/50 mb-8 flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2 text-slate-655 dark:text-slate-300 font-bold">
                   <Filter size={18} /> Filters:
                 </div>
                 <select 
                   value={filterPriority} 
                   onChange={(e) => setFilterPriority(e.target.value)}
-                  className="border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 bg-white/50 font-medium"
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 bg-white/50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-200 font-medium"
                 >
                   <option value="All">All Priorities</option>
                   <option value="High">High Priority</option>
@@ -372,7 +382,7 @@ export default function Admin() {
                 <select 
                   value={filterCourse} 
                   onChange={(e) => setFilterCourse(e.target.value)}
-                  className="border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 bg-white/50 font-medium"
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 bg-white/50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-200 font-medium"
                 >
                   <option value="All">All Courses</option>
                   <option value="Engineering">Engineering</option>
@@ -418,11 +428,11 @@ export default function Admin() {
               )}
 
               {/* Table */}
-              <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-sm border border-white/50 overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl shadow-sm border border-white/50 dark:border-slate-800/50 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-white/40 border-b border-slate-100 text-sm text-slate-500 uppercase tracking-wider">
+                      <tr className="bg-white/40 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         <th className="p-5 w-12">
                           <input 
                             type="checkbox" 
@@ -437,22 +447,22 @@ export default function Admin() {
                         <th className="p-5 font-bold">Documents</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                       {loading ? (
                         Array.from({ length: 5 }).map((_, index) => (
                           <tr key={index} className="animate-pulse">
                             <td className="p-5"></td>
-                            <td className="p-5"><div className="h-5 bg-slate-200 rounded-md w-3/4 mb-2"></div><div className="h-4 bg-slate-200 rounded-md w-1/2"></div></td>
-                            <td className="p-5"><div className="h-4 bg-slate-200 rounded-md w-2/3 mb-2"></div><div className="h-6 bg-slate-200 rounded-md w-1/2"></div></td>
-                            <td className="p-5"><div className="h-4 bg-slate-200 rounded-md w-1/2 mb-2"></div><div className="h-4 bg-slate-200 rounded-md w-1/2"></div></td>
-                            <td className="p-5"><div className="h-12 bg-slate-200 rounded-xl w-full"></div></td>
+                            <td className="p-5"><div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4 mb-2"></div><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2"></div></td>
+                            <td className="p-5"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-2/3 mb-2"></div><div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2"></div></td>
+                            <td className="p-5"><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2 mb-2"></div><div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-md w-1/2"></div></td>
+                            <td className="p-5"><div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl w-full"></div></td>
                           </tr>
                         ))
                       ) : filteredUsers.length === 0 ? (
-                        <tr><td colSpan={5} className="p-12 text-center text-slate-500 font-medium">No applicants found matching the current filters.</td></tr>
+                        <tr><td colSpan={5} className="p-12 text-center text-slate-500 dark:text-slate-400 font-medium">No applicants found matching the current filters.</td></tr>
                       ) : (
                         filteredUsers.map(user => (
-                          <tr key={user.id} className={`hover:bg-white/50 transition-colors ${selectedUsers.includes(user.id) ? 'bg-blue-50/50' : ''}`}>
+                          <tr key={user.id} className={`hover:bg-white/50 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100/50 dark:border-slate-800/50 ${selectedUsers.includes(user.id) ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''}`}>
                             <td className="p-5">
                               <input 
                                 type="checkbox" 
@@ -462,15 +472,15 @@ export default function Admin() {
                               />
                             </td>
                             <td className="p-5">
-                              <div className="font-bold text-prussian-blue text-lg">{user.profile?.name || user.email || 'Unknown'}</div>
-                              <div className="text-sm text-slate-500">{user.email}</div>
-                              <div className="text-sm text-slate-500 mt-2 flex items-center gap-1.5 bg-white/50 inline-flex px-2 py-1 rounded-md">
+                              <div className="font-bold text-prussian-blue dark:text-white text-lg">{user.profile?.name || user.email || 'Unknown'}</div>
+                              <div className="text-sm text-slate-500 dark:text-slate-400">{user.email}</div>
+                              <div className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5 bg-white/50 dark:bg-slate-950/50 inline-flex px-2 py-1 rounded-md border border-slate-100 dark:border-slate-800/50">
                                 <MessageSquare size={14} /> {user.profile?.whatsapp || 'No phone'}
                               </div>
                               <div className="mt-3">
                                 <button 
                                   onClick={() => setNotesModal({ isOpen: true, userId: user.id, text: user.adminNotes || '', userName: user.profile?.name || user.email || 'Applicant' })}
-                                  className="text-xs text-slate-600 flex items-center gap-1.5 bg-white hover:bg-slate-50 transition-colors inline-flex px-2.5 py-1.5 rounded-md border border-slate-200 shadow-sm font-medium"
+                                  className="text-xs text-slate-600 dark:text-slate-355 flex items-center gap-1.5 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors inline-flex px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 shadow-sm font-medium"
                                 >
                                   <FileText size={14} className={user.adminNotes ? "text-blue-500" : "text-slate-400"} /> 
                                   {user.adminNotes ? 'Edit Notes' : 'Add Note'}
@@ -478,18 +488,18 @@ export default function Admin() {
                               </div>
                             </td>
                             <td className="p-5">
-                              <div className="text-sm font-bold text-slate-700">{user.profile?.fieldOfInterest || 'Not specified'}</div>
+                              <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{user.profile?.fieldOfInterest || 'Not specified'}</div>
                               {user.profile?.isHighPriority && (
-                                <span className="inline-block mt-2 px-2.5 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-md border border-yellow-200">
+                                <span className="inline-block mt-2 px-2.5 py-1 bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-400 text-xs font-bold rounded-md border border-yellow-200 dark:border-yellow-900/40">
                                   ⭐ High Priority
                                 </span>
                               )}
                               <div className="mt-4">
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">App Status</label>
+                                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">App Status</label>
                                 <select 
                                   value={user.status || 'pending'} 
                                   onChange={(e) => handleUpdateStatus(user.id, e.target.value, user.profile?.whatsapp)}
-                                  className="text-xs font-bold bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-prussian-blue"
+                                  className="text-xs font-bold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 outline-none focus:border-prussian-blue dark:text-slate-200"
                                 >
                                   <option value="pending">Pending</option>
                                   <option value="submitted">Submitted</option>
@@ -502,10 +512,10 @@ export default function Admin() {
                             <td className="p-5">
                               {user.profile?.highSchoolExam ? (
                                 <div className="text-sm">
-                                  <div className="mb-2"><span className="text-slate-400 font-medium">Exam:</span> <span className="font-bold text-prussian-blue">{user.profile.highSchoolExam}</span></div>
+                                  <div className="mb-2"><span className="text-slate-400 dark:text-slate-500 font-medium">Exam:</span> <span className="font-bold text-prussian-blue dark:text-white">{user.profile.highSchoolExam}</span></div>
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {(user.profile.subjects || []).filter((s: any) => s.name && s.grade).map((sub: any, idx: number) => (
-                                      <span key={idx} className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${['A1', 'B2', 'B3'].includes(sub.grade) ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`} title={sub.name}>
+                                      <span key={idx} className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${['A1', 'B2', 'B3'].includes(sub.grade) ? 'bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/50' : 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-350 border-slate-200 dark:border-slate-800/80'}`} title={sub.name}>
                                         {sub.name.substring(0, 3).toUpperCase()}: {sub.grade}
                                       </span>
                                     ))}
@@ -513,8 +523,8 @@ export default function Admin() {
                                 </div>
                               ) : (
                                 <>
-                                  <div className="text-sm mb-1"><span className="text-slate-400 font-medium">CGPA:</span> <span className="font-bold text-prussian-blue">{user.profile?.cgpa || '-'}</span></div>
-                                  <div className="text-sm"><span className="text-slate-400 font-medium">German:</span> <span className="font-bold text-prussian-blue">{user.profile?.germanGrade || '-'}</span></div>
+                                  <div className="text-sm mb-1"><span className="text-slate-400 dark:text-slate-500 font-medium">CGPA:</span> <span className="font-bold text-prussian-blue dark:text-white">{user.profile?.cgpa || '-'}</span></div>
+                                  <div className="text-sm"><span className="text-slate-400 dark:text-slate-500 font-medium">German:</span> <span className="font-bold text-prussian-blue dark:text-white">{user.profile?.germanGrade || '-'}</span></div>
                                 </>
                               )}
                             </td>
@@ -525,17 +535,17 @@ export default function Admin() {
                                   if (!docData) return null;
                                   
                                   return (
-                                    <div key={docType} className="flex items-center justify-between gap-4 bg-white/80 p-3 rounded-xl border border-slate-100 shadow-sm">
+                                    <div key={docType} className="flex items-center justify-between gap-4 bg-white/80 dark:bg-slate-950/80 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60 shadow-sm">
                                       <div className="flex items-center gap-2 text-sm">
-                                        <span className="capitalize font-bold text-slate-700 w-20">{docType}</span>
+                                        <span className="capitalize font-bold text-slate-700 dark:text-slate-300 w-20">{docType}</span>
                                         {docData.status === 'verified' ? (
-                                          <span className="text-green-600 flex items-center gap-1.5 text-xs font-bold bg-green-50 px-2 py-1 rounded-md border border-green-100"><CheckCircle size={14}/> Verified</span>
+                                          <span className="text-green-600 dark:text-green-400 flex items-center gap-1.5 text-xs font-bold bg-green-50 dark:bg-green-950/20 px-2 py-1 rounded-md border border-green-100 dark:border-green-900/40"><CheckCircle size={14}/> Verified</span>
                                         ) : (
-                                          <span className="text-yellow-600 flex items-center gap-1.5 text-xs font-bold bg-yellow-50 px-2 py-1 rounded-md border border-yellow-100"><Clock size={14}/> Pending</span>
+                                          <span className="text-yellow-600 dark:text-yellow-450 flex items-center gap-1.5 text-xs font-bold bg-yellow-50 dark:bg-yellow-950/20 px-2 py-1 rounded-md border border-yellow-100 dark:border-yellow-900/40"><Clock size={14}/> Pending</span>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-3">
-                                        <a href={docData.url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">View</a>
+                                        <a href={docData.url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 dark:text-blue-450 hover:text-blue-800 dark:hover:text-blue-300 hover:underline">View</a>
                                         {docData.status === 'pending' && (
                                           <button 
                                             onClick={() => handleApproveDocument(user.id, docType, user.profile?.whatsapp)}
@@ -548,7 +558,7 @@ export default function Admin() {
                                     </div>
                                   );
                                 })}
-                                {!user.documents && <span className="text-sm text-slate-400 italic">No documents uploaded yet</span>}
+                                {!user.documents && <span className="text-sm text-slate-400 dark:text-slate-500 italic">No documents uploaded yet</span>}
                               </div>
                             </td>
                           </tr>
@@ -565,19 +575,19 @@ export default function Admin() {
 
       {/* Notes Modal */}
       {notesModal.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
               <div>
-                <h3 className="font-heading text-xl font-bold text-prussian-blue flex items-center gap-2">
+                <h3 className="font-heading text-xl font-bold text-prussian-blue dark:text-white flex items-center gap-2">
                   <FileText size={20} className="text-gold" />
                   Private Notes
                 </h3>
-                <p className="text-sm text-slate-500 mt-1">For {notesModal.userName}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">For {notesModal.userName}</p>
               </div>
               <button 
                 onClick={() => setNotesModal({ isOpen: false, userId: '', text: '', userName: '' })}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
               >
                 <X size={20} />
               </button>
@@ -587,13 +597,13 @@ export default function Admin() {
                 value={notesModal.text}
                 onChange={(e) => setNotesModal({ ...notesModal, text: e.target.value })}
                 placeholder="Add internal notes, interview feedback, or specific candidate details here. These notes are only visible to administrators."
-                className="w-full h-40 p-4 border border-slate-200 rounded-xl outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 resize-none text-sm text-slate-700 bg-slate-50/50 placeholder:text-slate-400"
+                className="w-full h-40 p-4 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 resize-none text-sm text-slate-700 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-950/50 placeholder:text-slate-400"
               ></textarea>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-end gap-3">
               <button 
                 onClick={() => setNotesModal({ isOpen: false, userId: '', text: '', userName: '' })}
-                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-850 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors"
               >
                 Cancel
               </button>

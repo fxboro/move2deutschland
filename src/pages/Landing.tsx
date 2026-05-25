@@ -24,6 +24,12 @@ export default function Landing() {
   const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
+    document.title = "Move2Deutschland | Study & Work in Germany from Nigeria";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Move2Deutschland helps Nigerian students and skilled workers relocate to Germany through tuition-free university admission and point-based Opportunity Card pathways.");
+    }
+
     const draft = localStorage.getItem('move2deutschland_lead_form');
     if (draft) {
       setHasDraft(true);

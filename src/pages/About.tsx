@@ -91,19 +91,19 @@ const values = [
     icon: Target,
     title: 'Our Mission',
     description: 'To make Germany accessible to every qualified African professional and student.',
-    color: 'bg-blue-50 text-prussian-blue',
+    color: 'bg-blue-50 dark:bg-slate-900/60 text-prussian-blue dark:text-gold',
   },
   {
     icon: Eye,
     title: 'Our Vision',
     description: 'A world where geography doesn\'t limit opportunity.',
-    color: 'bg-yellow-50 text-gold',
+    color: 'bg-yellow-50 dark:bg-slate-900/60 text-gold',
   },
   {
     icon: Heart,
     title: 'Our Values',
     description: 'Transparency, Excellence, and Genuine Care — in everything we do.',
-    color: 'bg-rose-50 text-rose-500',
+    color: 'bg-rose-50 dark:bg-slate-900/60 text-rose-500 dark:text-rose-400',
   },
 ];
 
@@ -116,8 +116,17 @@ const fadeUp = {
 
 /* ─── Page Component ─── */
 export default function About() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = "About Us | Move2Deutschland";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Find out how Move2Deutschland helps Nigerian students and skilled workers relocate to Germany through tuition-free university and Opportunity Card visa programs.");
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <Navbar isAlwaysSolid />
 
       {/* ═══════════════════ 1. Hero Banner ═══════════════════ */}
@@ -158,7 +167,7 @@ export default function About() {
       </section>
 
       {/* Gradient divider */}
-      <div className="h-24 bg-gradient-to-b from-prussian-blue to-slate-50" />
+      <div className="h-24 bg-gradient-to-b from-prussian-blue to-slate-50 dark:to-slate-950" />
 
       {/* ═══════════════════ 2. Founder Story ═══════════════════ */}
       <section className="py-24 px-6 md:px-12">
@@ -182,7 +191,7 @@ export default function About() {
 
               {/* Decorative accent */}
               <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-2xl bg-gold/20 border-2 border-gold/30 -z-10 hidden lg:block" />
-              <div className="absolute -top-4 -left-4 w-16 h-16 rounded-full bg-prussian-blue/10 -z-10 hidden lg:block" />
+              <div className="absolute -top-4 -left-4 w-16 h-16 rounded-full bg-prussian-blue/10 dark:bg-gold/10 -z-10 hidden lg:block" />
             </motion.div>
 
             {/* Story column */}
@@ -194,13 +203,13 @@ export default function About() {
                 Founder's Story
               </span>
 
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue mb-6">
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue dark:text-white mb-6">
                 From Lagos to Germany —<br className="hidden md:block" /> A Journey That Started It All
               </h2>
 
-              <div className="space-y-4 text-slate-600 leading-relaxed">
+              <div className="space-y-4 text-slate-650 dark:text-slate-300 leading-relaxed">
                 <p>
-                  <strong className="text-prussian-blue">Chima Dayo</strong> arrived in Germany with a suitcase, a dream,
+                  <strong className="text-prussian-blue dark:text-gold">Chima Dayo</strong> arrived in Germany with a suitcase, a dream,
                   and very little guidance. Navigating the complexities of uni-assist applications,
                   blocked accounts, embassy interviews, and German bureaucracy was overwhelming —
                   and he was doing it alone.
@@ -208,7 +217,7 @@ export default function About() {
                 <p>
                   After successfully settling in, completing his studies, and building a career in
                   Germany, Chima made a promise: <em>no one from Africa should have to figure this
-                  out alone</em>. That conviction became <strong className="text-prussian-blue">Move2Deutschland</strong>.
+                  out alone</em>. That conviction became <strong className="text-prussian-blue dark:text-gold">Move2Deutschland</strong>.
                 </p>
                 <p>
                   Today, the platform has helped over 500 candidates secure admissions, obtain visas,
@@ -223,14 +232,14 @@ export default function About() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="mt-8 p-6 rounded-2xl border-l-4 border-gold bg-gold/5 relative"
+                className="mt-8 p-6 rounded-2xl border-l-4 border-gold bg-gold/5 dark:bg-gold/10 relative"
               >
                 <Quote size={28} className="text-gold/30 absolute top-4 right-4" />
-                <p className="text-prussian-blue font-medium italic leading-relaxed">
+                <p className="text-prussian-blue dark:text-gold font-medium italic leading-relaxed">
                   "I built Move2Deutschland because I believe talent is universal — but opportunity
                   is not. We're here to close that gap."
                 </p>
-                <p className="mt-3 text-sm font-bold text-prussian-blue">
+                <p className="mt-3 text-sm font-bold text-prussian-blue dark:text-white">
                   — Chima Dayo, Founder
                 </p>
               </motion.div>
@@ -240,7 +249,7 @@ export default function About() {
       </section>
 
       {/* ═══════════════════ 3. Mission & Values ═══════════════════ */}
-      <section className="py-24 px-6 md:px-12 bg-white">
+      <section className="py-24 px-6 md:px-12 bg-white dark:bg-slate-900 transition-colors">
         <div className="max-w-7xl mx-auto">
           <motion.div
             {...fadeUp}
@@ -250,10 +259,10 @@ export default function About() {
             <span className="inline-block py-1 px-3 rounded-full bg-gold/10 text-gold border border-gold/20 font-bold text-xs uppercase tracking-wider mb-4">
               What Drives Us
             </span>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue mb-4">
+            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue dark:text-white mb-4">
               Mission, Vision & Values
             </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+            <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
               The principles that guide every candidate interaction and every success story.
             </p>
           </motion.div>
@@ -272,17 +281,17 @@ export default function About() {
                     y: -8,
                     boxShadow: '0 20px 25px -5px rgba(0, 49, 83, 0.08), 0 0 0 2px rgba(255, 204, 0, 0.15)',
                   }}
-                  className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 text-center group transition-all duration-300 cursor-pointer"
+                  className="bg-white dark:bg-slate-950 rounded-2xl p-8 shadow-lg border border-slate-100 dark:border-slate-800 text-center group transition-all duration-300 cursor-pointer"
                 >
                   <div
                     className={`w-16 h-16 ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}
                   >
                     <Icon size={32} />
                   </div>
-                  <h3 className="font-heading text-xl font-bold text-prussian-blue mb-3">
+                  <h3 className="font-heading text-xl font-bold text-prussian-blue dark:text-white mb-3">
                     {item.title}
                   </h3>
-                  <p className="text-slate-600 leading-relaxed text-sm">{item.description}</p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">{item.description}</p>
                 </motion.div>
               );
             })}
@@ -291,7 +300,7 @@ export default function About() {
       </section>
 
       {/* ═══════════════════ 4. Team Section ═══════════════════ */}
-      <section className="py-24 px-6 md:px-12 bg-slate-50">
+      <section className="py-24 px-6 md:px-12 bg-slate-50 dark:bg-slate-900/40">
         <div className="max-w-7xl mx-auto">
           <motion.div
             {...fadeUp}
@@ -301,10 +310,10 @@ export default function About() {
             <span className="inline-block py-1 px-3 rounded-full bg-gold/10 text-gold border border-gold/20 font-bold text-xs uppercase tracking-wider mb-4">
               The People Behind the Mission
             </span>
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue mb-4">
+            <h2 className="font-heading text-3xl md:text-5xl font-bold text-prussian-blue dark:text-white mb-4">
               Meet Our Team
             </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+            <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">
               A dedicated crew of consultants, advisors, and experts who've walked the path themselves.
             </p>
           </motion.div>
@@ -321,11 +330,11 @@ export default function About() {
                   y: -8,
                   boxShadow: '0 20px 40px -10px rgba(0, 49, 83, 0.12), 0 0 0 2px rgba(255, 204, 0, 0.15)',
                 }}
-                className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 text-center group transition-all duration-300"
+                className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-lg border border-slate-100 dark:border-slate-800 text-center group transition-all duration-300"
               >
                 {/* Avatar */}
                 <div className="relative w-28 h-28 mx-auto mb-6">
-                  <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-slate-100 group-hover:border-gold/40 transition-colors duration-300 shadow-md">
+                  <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 group-hover:border-gold/40 transition-colors duration-300 shadow-md">
                     <img
                       src={member.image}
                       alt={member.name}
@@ -333,16 +342,16 @@ export default function About() {
                     />
                   </div>
                   {/* Online dot */}
-                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white" />
+                  <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900" />
                 </div>
 
-                <h3 className="font-heading text-lg font-bold text-prussian-blue mb-1">
+                <h3 className="font-heading text-lg font-bold text-prussian-blue dark:text-white mb-1">
                   {member.name}
                 </h3>
                 <p className="text-gold font-semibold text-xs uppercase tracking-wider mb-4">
                   {member.role}
                 </p>
-                <p className="text-slate-500 text-sm leading-relaxed">{member.bio}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{member.bio}</p>
               </motion.div>
             ))}
           </div>
@@ -350,7 +359,7 @@ export default function About() {
       </section>
 
       {/* ═══════════════════ 5. Company Stats ═══════════════════ */}
-      <section className="py-20 px-6 md:px-12 bg-slate-900 relative overflow-hidden">
+      <section className="py-20 px-6 md:px-12 bg-slate-900 dark:bg-black/60 relative overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute top-0 left-0 w-60 h-60 bg-gold/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-prussian-blue/30 rounded-full blur-[120px] pointer-events-none" />

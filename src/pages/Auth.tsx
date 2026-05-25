@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Lock, User, ArrowRight } from 'lucide-react';
@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import Logo from '../components/Logo';
+import { checkIsAdmin } from '../utils/auth';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,6 +24,18 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isForgotPassword) {
+      document.title = "Reset Password | Move2Deutschland";
+    } else {
+      document.title = isLogin ? "Sign In | Move2Deutschland" : "Create Account | Move2Deutschland";
+    }
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "Access the Move2Deutschland portal to complete your relocation application and track document status.");
+    }
+  }, [isLogin, isForgotPassword]);
 
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { score: 0, label: '', color: 'bg-slate-200' };
@@ -75,7 +88,8 @@ export default function Auth() {
       if (isLogin) {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         if (userCredential.user.emailVerified) {
-          if (userCredential.user.email === 'chimadayo43@gmail.com') {
+          const isAdmin = await checkIsAdmin(userCredential.user);
+          if (isAdmin) {
             navigate('/admin');
           } else {
             navigate('/dashboard');
@@ -107,7 +121,8 @@ export default function Auth() {
       setError(null);
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user.emailVerified) {
-        if (result.user.email === 'chimadayo43@gmail.com') {
+        const isAdmin = await checkIsAdmin(result.user);
+        if (isAdmin) {
           navigate('/admin');
         } else {
           navigate('/dashboard');
