@@ -16,13 +16,15 @@ import {
   Lock, 
   User, 
   HelpCircle,
-  Mail 
+  Mail,
+  ShieldAlert
 } from 'lucide-react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { checkIsAdmin } from '../utils/auth';
 
 export default function OpportunityCard() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -52,6 +54,8 @@ export default function OpportunityCard() {
     breakdown: string[];
   } | null>(null);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = "Chancenkarte Points Calculator | Move2Deutschland";
@@ -60,8 +64,14 @@ export default function OpportunityCard() {
       metaDescription.setAttribute("content", "Calculate your German Opportunity Card (Chancenkarte) points based on age, education, work experience, and language skills.");
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      if (user) {
+        const isAdminUser = await checkIsAdmin(user);
+        setIsAdmin(isAdminUser);
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -230,7 +240,43 @@ export default function OpportunityCard() {
       <Navbar isAlwaysSolid={true} />
 
       <AnimatePresence mode="wait">
-        {!showQuiz ? (
+        {showQuiz && isAdmin ? (
+          /* Restricted Admin View */
+          <motion.div
+            key="admin-restricted"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            className="py-12 px-6 md:px-12 max-w-md mx-auto"
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800/80 p-8 md:p-10 text-center space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto border border-amber-200/50">
+                <ShieldAlert size={32} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="font-heading text-2xl font-extrabold text-prussian-blue dark:text-white">Admin Access Restricted</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  You are currently signed in as an **Administrator**. Administrators are not permitted to use the Chancenkarte points calculator questionnaire.
+                </p>
+              </div>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="w-full bg-prussian-blue text-white font-bold py-3.5 px-6 rounded-xl hover:bg-prussian-blue/90 shadow-md transition-all text-sm cursor-pointer dark:bg-gold dark:text-prussian-blue dark:hover:bg-yellow-400"
+                >
+                  Go to Admin Panel
+                </button>
+                <button
+                  onClick={() => setShowQuiz(false)}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3 px-6 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-750 transition-all text-sm cursor-pointer"
+                >
+                  Back to Details
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ) : !showQuiz ? (
           /* Informational Landing Page View */
           <motion.div
             key="landing"

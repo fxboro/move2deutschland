@@ -2,6 +2,16 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import twilio from "twilio";
 import path from "path";
+import rateLimit from "express-rate-limit";
+
+// Rate limiter for notify endpoint (max 10 requests per 15 minutes per IP)
+const notifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { success: false, error: "Too many notifications sent from this IP. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 async function startServer() {
   const app = express();
@@ -18,10 +28,31 @@ async function startServer() {
   const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
 
   // API routes FIRST
-  app.post("/api/notify", async (req, res) => {
+  app.post("/api/notify", notifyLimiter, async (req, res) => {
     try {
       const { to, message } = req.body;
       
+      // Validation check
+      if (!to || typeof to !== "string") {
+        return res.status(400).json({ success: false, error: "Missing or invalid 'to' field. It must be a valid phone string." });
+      }
+      
+      // Validate phone number formatting (e.g. E.164 format digits optionally starting with +, 7-15 digits total)
+      const phoneRegex = /^\+?[1-9]\d{6,14}$/;
+      // Clean target by removing spaces/hyphens for comparison if needed
+      const cleanPhone = to.replace(/[\s-()]/g, "");
+      if (!phoneRegex.test(cleanPhone)) {
+        return res.status(400).json({ success: false, error: "Invalid phone number format. It must follow E.164 standard." });
+      }
+
+      if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ success: false, error: "Missing or empty 'message' field." });
+      }
+
+      if (message.length > 500) {
+        return res.status(400).json({ success: false, error: "Message too long. Max limit is 500 characters." });
+      }
+
       if (!client) {
         console.warn("Twilio is not configured. Mocking WhatsApp message.");
         return res.json({ success: true, mocked: true, message: "Twilio not configured. Message mocked." });
@@ -31,7 +62,7 @@ async function startServer() {
       const response = await client.messages.create({
         body: message,
         from: `whatsapp:${twilioPhone}`,
-        to: `whatsapp:${to}`
+        to: `whatsapp:${cleanPhone}`
       });
 
       res.json({ success: true, messageId: response.sid });

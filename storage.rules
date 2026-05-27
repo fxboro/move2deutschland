@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isVerified() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+
+    match /users/{userId}/documents/{fileName} {
+      // Allow read if the user is the owner and verified, or if they are admin.
+      allow read: if (isOwner(userId) && isVerified()) || isAdmin();
+      
+      // Allow write if the user is the owner, is verified, size is < 10MB, and content is image/PDF.
+      allow write: if isOwner(userId) 
+                   && isVerified()
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+  }
+}

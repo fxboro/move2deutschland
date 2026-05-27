@@ -11,7 +11,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.email == "chimadayo43@gmail.com";
+      return isAuthenticated() && request.auth.token.admin == true;
     }
     
     function isOwner(userId) {
@@ -28,7 +28,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       // Students can only read their own profile. Admins can read all.
-      // Detailed application data requires email verification.
+      // Detailed profile data requires email verification.
       allow read: if (isOwner(userId) && isVerified()) || isAdmin();
       
       // Students can create their own profile.
@@ -40,6 +40,37 @@ service cloud.firestore {
       
       // Only admins can delete user data.
       allow delete: if isAdmin();
+    }
+
+    match /applications/{userId} {
+      // Students can only read their own application. Admins can read all.
+      // Detailed application access requires email verification.
+      allow read: if (isOwner(userId) && isVerified()) || isAdmin();
+      
+      // Students can create their own application if they are email verified.
+      allow create: if isOwner(userId) && isVerified();
+      
+      // Students can update their own application if they are email verified.
+      allow update: if (isOwner(userId) && isVerified()) || isAdmin();
+      
+      // Only admins can delete applications.
+      allow delete: if isAdmin();
+    }
+
+    match /contactSubmissions/{submissionId} {
+      // Anyone can submit a contact inquiry.
+      allow create: if true;
+      
+      // Only admins can read, update, or delete contact inquiries.
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /testimonials/{testimonialId} {
+      // Public can read approved testimonials.
+      allow read: if resource.data.approved == true || isAdmin();
+      
+      // Only admins can write testimonials.
+      allow write: if isAdmin();
     }
 
     match /mail/{mailId} {

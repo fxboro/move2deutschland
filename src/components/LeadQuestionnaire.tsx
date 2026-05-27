@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Phone, Info, X } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Phone, Info, X, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
+import { checkIsAdmin } from '../utils/auth';
 
 export interface SubjectGrade {
   name: string;
@@ -53,7 +56,20 @@ export default function LeadQuestionnaire() {
 
   const [isHighPriority, setIsHighPriority] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const isAdminUser = await checkIsAdmin(user);
+        setIsAdmin(isAdminUser);
+      } else {
+        setIsAdmin(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (step < 5) {
@@ -479,6 +495,32 @@ export default function LeadQuestionnaire() {
       default: return true;
     }
   };
+
+  if (isAdmin) {
+    return (
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-8 border border-slate-100 dark:border-slate-800 text-center space-y-6 max-w-lg mx-auto transition-all">
+        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto border border-amber-200/50">
+          <ShieldAlert size={32} />
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-heading text-2xl font-bold text-prussian-blue dark:text-white">
+            Admin Access Restricted
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+            You are currently signed in as an **Administrator**. Administrators are not permitted to submit candidate eligibility applications or take the assessment test.
+          </p>
+        </div>
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() => navigate('/admin')}
+            className="bg-prussian-blue text-white font-bold py-3 px-6 rounded-xl hover:bg-prussian-blue/90 shadow-md transition-all text-sm cursor-pointer dark:bg-gold dark:text-prussian-blue dark:hover:bg-yellow-400"
+          >
+            Go to Admin Panel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-5 md:p-8 border border-slate-100 dark:border-slate-800 relative overflow-hidden flex flex-col transition-all">
