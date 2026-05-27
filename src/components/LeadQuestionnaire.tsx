@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Phone, Info, X, ShieldAlert } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle, GraduationCap, Briefcase, Wallet, Mail, Info, X, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
+import { onAuthStateChanged, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { checkIsAdmin } from '../utils/auth';
 
 export interface SubjectGrade {
@@ -19,7 +20,7 @@ interface FormData {
   bachelorProgram: string;
   fieldOfInterest: string;
   financialReadiness: string;
-  whatsapp: string;
+  email: string;
 }
 
 export default function LeadQuestionnaire() {
@@ -50,12 +51,14 @@ export default function LeadQuestionnaire() {
       bachelorProgram: '',
       fieldOfInterest: '',
       financialReadiness: '',
-      whatsapp: '',
+      email: '',
     };
   });
 
   const [isHighPriority, setIsHighPriority] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasExistingAccount, setHasExistingAccount] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
@@ -86,7 +89,7 @@ export default function LeadQuestionnaire() {
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 5));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Logic: High financial readiness AND CGPA > 3.5 = High Priority
     // For High School: At least 5 subjects with A1, B2, or B3 grades.
     let hasHighGrades = false;
@@ -103,19 +106,118 @@ export default function LeadQuestionnaire() {
       }
     }
 
-    if (['High', 'Sponsor'].includes(formData.financialReadiness) && hasHighGrades) {
-      setIsHighPriority(true);
-    } else {
-      setIsHighPriority(false);
-    }
-    
-    setStep(5); // Move to success step
+    const highPriority = ['High', 'Sponsor'].includes(formData.financialReadiness) && hasHighGrades;
+    setIsHighPriority(highPriority);
+    setIsSubmitting(true);
 
-    // Simulate redirect after 3 seconds
-    setTimeout(() => {
-      setIsRedirecting(true);
-      navigate('/auth');
-    }, 3000);
+    try {
+      // Check if the email already has a Firebase account
+      const signInMethods = await fetchSignInMethodsForEmail(auth, formData.email);
+      const accountExists = signInMethods.length > 0;
+      setHasExistingAccount(accountExists);
+
+      if (accountExists) {
+        // Queue branded assessment result email via Firestore /mail collection
+        const resultSummary = highPriority
+          ? 'Based on your academic standing and financial preparedness, you have been classified as a <strong>High-Priority Candidate</strong>. Our placement team will be in touch shortly.'
+          : 'Based on the information you provided, you appear to be a strong match for the German tuition-free university pathway. We recommend proceeding with your full application.';
+
+        await addDoc(collection(db, 'mail'), {
+          to: formData.email,
+          message: {
+            subject: highPriority
+              ? '⭐ Your Move2Deutschland Eligibility Results — High-Priority Candidate!'
+              : '📋 Your Move2Deutschland Eligibility Assessment Results',
+            html: `
+              <div style="font-family: 'Inter', Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #003153; padding: 30px 20px; text-align: center;">
+                  <h1 style="color: #FFD700; margin: 0; font-size: 28px; letter-spacing: -0.5px;">move<span style="color: #ffffff;">2</span>deutschland</h1>
+                </div>
+                <div style="padding: 30px 20px; background-color: #ffffff;">
+                  <h2 style="color: #003153; font-size: 22px; margin-top: 0;">Your Eligibility Assessment Results</h2>
+                  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b; width: 40%;">Academic Status</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.academicStatus}</td>
+                    </tr>
+                    ${formData.academicStatus === "Bachelor's" ? `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b;">CGPA</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.cgpa} / 5.0</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b;">Program</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.bachelorProgram}</td>
+                    </tr>
+                    ` : ''}
+                    ${formData.academicStatus === "High School" ? `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b;">Examination</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.highSchoolExam}</td>
+                    </tr>
+                    ` : ''}
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b;">Field of Interest</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.fieldOfInterest}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0; font-weight: bold; color: #64748b;">Financial Readiness</td>
+                      <td style="padding: 10px 0; color: #1e293b;">${formData.financialReadiness}</td>
+                    </tr>
+                  </table>
+                  ${highPriority ? '<div style="background-color: #FFFBEB; border: 1px solid #FFD700; border-radius: 8px; padding: 12px 16px; margin: 16px 0; text-align: center;"><span style="font-weight: bold; color: #003153;">⭐ High-Priority Candidate</span></div>' : ''}
+                  <p style="font-size: 15px; line-height: 1.7; color: #475569;">${resultSummary}</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://move2deutschland.com/dashboard" style="display: inline-block; background-color: #FFD700; color: #003153; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 6px; font-size: 16px;">Complete Your Application</a>
+                  </div>
+                </div>
+                <div style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
+                  <p style="margin: 0 0 10px 0;"><strong>Move2Deutschland</strong><br>123 Education Way, Berlin, Germany 10115</p>
+                  <p style="margin: 0;">
+                    <a href="https://move2deutschland.com/privacy" style="color: #003153; text-decoration: underline;">Privacy Policy</a> |
+                    <a href="https://move2deutschland.com/preferences" style="color: #003153; text-decoration: underline;">Manage Preferences</a>
+                  </p>
+                </div>
+              </div>
+            `
+          }
+        });
+
+        setStep(5);
+        // Redirect existing user to login after showing results
+        setTimeout(() => {
+          setIsRedirecting(true);
+          navigate('/auth');
+        }, 4000);
+      } else {
+        // No account: save quiz data to localStorage and redirect to auth
+        localStorage.setItem('move2deutschland_assessment_pending', JSON.stringify({
+          formData,
+          isHighPriority: highPriority,
+          completedAt: new Date().toISOString()
+        }));
+        setStep(5);
+        setTimeout(() => {
+          setIsRedirecting(true);
+          navigate(`/auth?redirect=dashboard&email=${encodeURIComponent(formData.email)}`);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error checking account or sending email:', error);
+      // Fallback: save to localStorage and redirect to auth
+      localStorage.setItem('move2deutschland_assessment_pending', JSON.stringify({
+        formData,
+        isHighPriority: highPriority,
+        completedAt: new Date().toISOString()
+      }));
+      setStep(5);
+      setTimeout(() => {
+        setIsRedirecting(true);
+        navigate(`/auth?redirect=dashboard&email=${encodeURIComponent(formData.email)}`);
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const slideVariants = {
@@ -391,33 +493,33 @@ export default function LeadQuestionnaire() {
         return (
           <div className="space-y-6 text-left">
             <div className="flex items-center gap-3 mb-6 text-prussian-blue">
-              <Phone className="text-gold" size={28} />
+              <Mail className="text-gold" size={28} />
               <h4 className="font-heading text-xl font-bold">Where should we send your results?</h4>
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">WhatsApp Number</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-slate-200 bg-slate-50 text-slate-500 font-medium">
-                  +234
-                </span>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                  <Mail size={18} />
+                </div>
                 <input
-                  type="tel"
-                  placeholder="801 234 5678"
-                  value={formData.whatsapp}
-                  onChange={(e) => updateForm('whatsapp', e.target.value)}
-                  className={`w-full p-4 rounded-r-xl border focus:ring-2 outline-none transition-all font-sans ${
-                    formData.whatsapp && !/^[0-9\s\-\+]{10,15}$/.test(formData.whatsapp)
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => updateForm('email', e.target.value)}
+                  className={`w-full pl-11 p-4 rounded-xl border focus:ring-2 outline-none transition-all font-sans ${
+                    formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
                       ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20 bg-red-50'
                       : 'border-slate-200 focus:border-prussian-blue focus:ring-prussian-blue/20'
                   }`}
                 />
               </div>
-              {formData.whatsapp && !/^[0-9\s\-\+]{10,15}$/.test(formData.whatsapp) ? (
-                <p className="text-red-500 text-xs mt-2 font-medium">Please enter a valid phone number (10-15 digits)</p>
+              {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? (
+                <p className="text-red-500 text-xs mt-2 font-medium">Please enter a valid email address</p>
               ) : (
                 <p className="text-xs text-slate-400 mt-3">
-                  We'll send your eligibility report and next steps directly to your WhatsApp.
+                  We'll send your eligibility report and next steps to your email.
                 </p>
               )}
             </div>
@@ -439,9 +541,15 @@ export default function LeadQuestionnaire() {
               Profile Analyzed!
             </h4>
             
-            <p className="text-slate-600 max-w-sm mx-auto">
-              You are a great fit for the German tuition-free program.
-            </p>
+            {hasExistingAccount ? (
+              <p className="text-slate-600 max-w-sm mx-auto">
+                Your eligibility results have been sent to <strong>{formData.email}</strong>. Check your inbox for your detailed assessment report.
+              </p>
+            ) : (
+              <p className="text-slate-600 max-w-sm mx-auto">
+                You are a great fit for the German tuition-free program. Create your free account to unlock your full assessment report.
+              </p>
+            )}
 
             {isHighPriority && (
               <motion.div 
@@ -457,10 +565,12 @@ export default function LeadQuestionnaire() {
               {isRedirecting ? (
                 <div className="flex items-center justify-center gap-2 text-prussian-blue font-medium">
                   <div className="w-5 h-5 border-2 border-prussian-blue border-t-transparent rounded-full animate-spin"></div>
-                  Redirecting to Sign Up...
+                  {hasExistingAccount ? 'Redirecting to Sign In...' : 'Redirecting to Create Account...'}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Preparing your personalized dashboard...</p>
+                <p className="text-sm text-slate-500">
+                  {hasExistingAccount ? 'Preparing your personalized dashboard...' : 'Setting up your account...'}
+                </p>
               )}
             </div>
           </div>
@@ -488,9 +598,9 @@ export default function LeadQuestionnaire() {
       case 2: return formData.fieldOfInterest !== '';
       case 3: return formData.financialReadiness !== '';
       case 4: {
-        // Validate phone number: mostly digits, spaces, dashes (10-15 characters)
-        const phoneRegex = /^[0-9\s\-\+]{10,15}$/;
-        return phoneRegex.test(formData.whatsapp);
+        // Validate email address format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(formData.email);
       }
       default: return true;
     }
@@ -588,14 +698,21 @@ export default function LeadQuestionnaire() {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || isSubmitting}
               className={`flex items-center gap-2 px-8 py-3 rounded-full font-bold transition-all ${
-                isStepValid() 
+                isStepValid() && !isSubmitting
                   ? 'bg-gold text-prussian-blue hover:bg-yellow-400 shadow-[0_4px_14px_rgba(255,204,0,0.4)] hover:shadow-[0_6px_20px_rgba(255,204,0,0.6)] hover:-translate-y-0.5' 
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
             >
-              See My Results
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-prussian-blue border-t-transparent rounded-full animate-spin"></div>
+                  Checking...
+                </>
+              ) : (
+                'See My Results'
+              )}
             </button>
           )}
         </div>
