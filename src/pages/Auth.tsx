@@ -187,7 +187,7 @@ export default function Auth() {
         </div>
 
         <div className="text-slate-400 text-xs">
-          © {new Date().getFullYear()} Move2Deutschland. All rights reserved.
+          © {new Date().getFullYear()} Move2Deutschland operating under Buytripsnow OÜ All rights reserved. Built by <a href="https://chimadev.com" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-slate-300">Chima.dev</a>
         </div>
       </div>
 

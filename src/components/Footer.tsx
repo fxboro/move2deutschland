@@ -137,10 +137,8 @@ export default function Footer() {
       {/* Bottom Bar: Copyright & Legal */}
       <div className="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500 relative z-10">
         <p className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <span>© {currentYear} Move2Deutschland. All rights reserved.</span>
-          <span className="hidden sm:inline text-slate-700">|</span>
           <span>
-            built by{' '}
+            © {currentYear} Move2Deutschland operating under Buytripsnow OÜ All rights reserved. Built by{' '}
             <a 
               href="https://chimadev.com" 
               target="_blank" 
@@ -148,8 +146,7 @@ export default function Footer() {
               className="text-gold hover:underline font-semibold"
             >
               Chima.dev
-            </a>{' '}
-            - Software, Web, AI & Workflow automation
+            </a>
           </span>
         </p>
         <div className="flex gap-6">
