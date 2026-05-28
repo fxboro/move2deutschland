@@ -66,6 +66,19 @@ export const onUserSignup = functions.auth.user().onCreate(async (user) => {
 
   const batch = db.batch();
 
+  // Create user profile document in Firestore to prevent "Dashboard Ghosting" (Nudge email support)
+  const userRef = db.collection('users').doc(user.uid);
+  batch.set(userRef, {
+    email,
+    emailVerified: false,
+    nudgeSent: false,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    profile: {
+      name: displayName,
+      status: 'pending'
+    }
+  }, { merge: true });
+
   // 1. User Welcome Email Document (Triggers 'Trigger Email' extension)
   const welcomeMailRef = db.collection('mail').doc();
   batch.set(welcomeMailRef, {
