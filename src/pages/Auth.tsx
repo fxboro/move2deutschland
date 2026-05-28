@@ -59,7 +59,11 @@ export default function Auth() {
     setIsLoading(true);
     setError(null);
     try {
-      await sendPasswordResetEmail(auth, email);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: true,
+      };
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       alert('Password reset email sent! Please check your inbox.');
       setIsForgotPassword(false);
       setIsLogin(true);
