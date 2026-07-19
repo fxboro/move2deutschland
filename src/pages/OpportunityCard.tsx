@@ -25,12 +25,14 @@ import { auth, db } from '../firebase';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { checkIsAdmin } from '../utils/auth';
+import { useToast } from '../components/Toast';
 
 export default function OpportunityCard() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Questionnaire state
   const [answers, setAnswers] = useState({
@@ -177,18 +179,18 @@ export default function OpportunityCard() {
     if (currentStep === 1) {
       // Validate Step 1 has answers
       if (!answers.hasRecognizedDegree || !answers.germanLevel || !answers.englishLevel || !answers.financialReadiness) {
-        alert('Please answer all questions before proceeding.');
+        toast.warning('Please answer all questions before proceeding.');
         return;
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!answers.isFullyRecognized) {
-        alert('Please answer the recognition question.');
+        toast.warning('Please answer the recognition question.');
         return;
       }
       if (answers.isFullyRecognized !== 'yes') {
         if (!answers.partialRecognition || !answers.experience || !answers.age || !answers.germanyStay || !answers.shortageOccupation || !answers.spouseApplying) {
-          alert('Please answer all points criteria questions.');
+          toast.warning('Please answer all points criteria questions.');
           return;
         }
       }
@@ -216,10 +218,11 @@ export default function OpportunityCard() {
           }
         }, { merge: true });
         
+        toast.success('Opportunity Card score saved successfully!');
         navigate('/dashboard');
       } catch (e) {
         console.error('Error saving Opportunity Card score:', e);
-        alert('Failed to save score. Please try again.');
+        toast.error('Failed to save score. Please try again.');
       }
     } else {
       // Save draft to localStorage and redirect to auth

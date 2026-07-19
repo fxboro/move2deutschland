@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { 
   signInWithPopup, 
   signInWithEmailAndPassword, 
@@ -13,6 +13,39 @@ import {
 import { auth, googleProvider } from '../firebase';
 import Logo from '../components/Logo';
 import { checkIsAdmin } from '../utils/auth';
+import { useToast } from '../components/Toast';
+
+// Helper function to sanitize Firebase Auth error codes into friendly user messages
+function getAuthErrorMessage(err: any): string {
+  if (!err) return 'Something went wrong. Please try again.';
+  
+  const code = err.code || '';
+  const message = err.message || '';
+  
+  if (code === 'auth/invalid-credential' || message.includes('auth/invalid-credential') || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return 'Invalid email or password. Please try again.';
+  }
+  if (code === 'auth/email-already-in-use' || message.includes('auth/email-already-in-use')) {
+    return 'An account with this email address already exists. Please sign in.';
+  }
+  if (code === 'auth/weak-password' || message.includes('auth/weak-password')) {
+    return 'Password is too weak. Please use at least 8 characters with a mix of letters, numbers, and symbols.';
+  }
+  if (code === 'auth/too-many-requests' || message.includes('auth/too-many-requests')) {
+    return 'Too many failed attempts. Please wait a few minutes and try again.';
+  }
+  if (code === 'auth/network-request-failed' || message.includes('auth/network-request-failed')) {
+    return 'Network error. Please check your internet connection and try again.';
+  }
+  if (code === 'auth/invalid-email' || message.includes('auth/invalid-email')) {
+    return 'Please enter a valid email address.';
+  }
+  if (code === 'auth/popup-closed-by-user' || message.includes('auth/popup-closed-by-user')) {
+    return 'Google authentication sign-in window was closed before completion.';
+  }
+  
+  return 'Authentication failed. Please check your details and try again.';
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,8 +55,10 @@ export default function Auth() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     if (isForgotPassword) {
@@ -64,11 +99,11 @@ export default function Auth() {
         handleCodeInApp: true,
       };
       await sendPasswordResetEmail(auth, email, actionCodeSettings);
-      alert('Password reset email sent! Please check your inbox.');
+      toast.success('Password reset email sent! Please check your inbox.');
       setIsForgotPassword(false);
       setIsLogin(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send password reset email.');
+      setError(getAuthErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +145,7 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please try again.');
+      setError(getAuthErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +170,7 @@ export default function Auth() {
         navigate('/verify-email');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to authenticate with Google.');
+      setError(getAuthErrorMessage(err));
     }
   };
 
@@ -320,13 +355,24 @@ export default function Auth() {
                       <Lock size={18} />
                     </div>
                     <input 
-                      type="password" 
+                      type={showPassword ? "text" : "password"} 
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                      className="w-full pl-11 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
                       placeholder="••••••••"
                     />
+                    <div
+                      role="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowPassword(!showPassword);
+                      }}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer z-10"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </div>
                   </div>
                 </div>
 

@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { checkIsAdmin } from '../utils/auth';
+import { useToast } from '../components/Toast';
 import { 
   CheckCircle, 
   Clock, 
@@ -25,6 +26,7 @@ import {
 export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterCourse, setFilterCourse] = useState('All');
@@ -88,16 +90,16 @@ export default function Admin() {
         const result = await response.json();
         
         if (result.success) {
-          alert(`Status updated to ${newStatus} and notification sent!`);
+          toast.success(`Status updated to ${newStatus} and notification sent!`);
         } else {
-          alert(`Status updated, but notification failed: ${result.error || 'Unknown error'}`);
+          toast.warning(`Status updated, but notification failed: ${result.error || 'Unknown error'}`);
         }
       } else {
-        alert(`Status updated to ${newStatus}! (No phone number for notification)`);
+        toast.info(`Status updated to ${newStatus}! (No phone number for notification)`);
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      alert("Failed to update status.");
+      toast.error("Failed to update status.");
     }
   };
 
@@ -136,16 +138,16 @@ export default function Admin() {
         const result = await response.json();
         
         if (result.success) {
-          alert(`${docType.toUpperCase()} approved and notification sent!`);
+          toast.success(`${docType.toUpperCase()} approved and notification sent!`);
         } else {
-          alert(`${docType.toUpperCase()} approved, but notification failed.`);
+          toast.warning(`${docType.toUpperCase()} approved, but notification failed.`);
         }
       } else {
-        alert(`${docType.toUpperCase()} approved!`);
+        toast.success(`${docType.toUpperCase()} approved!`);
       }
     } catch (error) {
       console.error("Error approving document:", error);
-      alert("Failed to approve document.");
+      toast.error("Failed to approve document.");
     }
   };
 
@@ -233,9 +235,10 @@ export default function Admin() {
       
       setUsers(users.map(u => u.id === notesModal.userId ? { ...u, adminNotes: notesModal.text } : u));
       setNotesModal({ isOpen: false, userId: '', text: '', userName: '' });
+      toast.success("Note saved successfully!");
     } catch (error) {
       console.error("Error saving note:", error);
-      alert("Failed to save note.");
+      toast.error("Failed to save note.");
     }
   };
 

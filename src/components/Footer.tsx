@@ -13,10 +13,12 @@ import {
   MessageSquare
 } from 'lucide-react';
 import Logo from './Logo';
+import { useToast } from './Toast';
 
 export default function Footer() {
   const location = useLocation();
   const currentYear = new Date().getFullYear();
+  const toast = useToast();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     if (targetId.startsWith('#') && location.pathname === '/') {
@@ -30,7 +32,7 @@ export default function Footer() {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Thank you for subscribing to our newsletter! We will keep you updated.');
+    toast.success('Thank you for subscribing to our newsletter! We will keep you updated.');
   };
 
   return (

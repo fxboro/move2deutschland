@@ -29,10 +29,12 @@ import { checkIsAdmin, checkIsAdminSync } from '../utils/auth';
 import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { useToast } from '../components/Toast';
 
 export default function Dashboard() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const navigate = useNavigate();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'application' | 'resources'>('application');
   const [appStatus, setAppStatus] = useState<string>('pending');
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
@@ -54,6 +56,10 @@ export default function Dashboard() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Loading & Error State for Firestore data fetch
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Edit Profile State
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -66,6 +72,156 @@ export default function Dashboard() {
     highSchoolExam: '',
     subjects: [] as {name: string, grade: string}[]
   });
+
+  const calculateGrade = (value: string) => {
+    const nMax = 5.0;
+    const nMin = 1.0;
+    const nd = parseFloat(value);
+    if (!isNaN(nd) && nd >= nMin && nd <= nMax) {
+      // Modified Bavarian Formula
+      const grade = ((nMax - nd) / (nMax - nMin)) * 3 + 1;
+      setGermanGrade(grade.toFixed(1));
+    } else {
+      setGermanGrade(null);
+    }
+  };
+
+  const loadUserData = async (currentUser: FirebaseUser, isRetry = false): Promise<void> => {
+    const userDocRef = doc(db, 'users', currentUser.uid);
+
+    try {
+      const userDoc = await getDoc(userDocRef);
+        
+      let profileData = {};
+      let docData = {};
+
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        profileData = data.profile || {};
+        docData = data.documents || {};
+        setAppStatus(data.status || 'pending');
+        setOpportunityCardData(data.opportunityCard || null);
+      }
+
+      // Sync Chancenkarte point calculator if exists (for users coming from Opportunity Card quiz)
+      const storedChancenkarte = localStorage.getItem('move2deutschland_chancenkarte_form');
+      if (storedChancenkarte) {
+        try {
+          const parsedChancenkarte = JSON.parse(storedChancenkarte);
+          const opCardData = {
+            ...parsedChancenkarte,
+            calculatedAt: new Date().toISOString()
+          };
+          await setDoc(userDocRef, {
+            opportunityCard: opCardData
+          }, { merge: true });
+          setOpportunityCardData(opCardData);
+          localStorage.removeItem('move2deutschland_chancenkarte_form');
+        } catch (e) {
+          console.error("Error syncing Chancenkarte data:", e);
+        }
+      }
+
+      // Sync local storage data if exists (for first-time users coming from landing page)
+      const storedLeadData = localStorage.getItem('move2deutschland_lead_form');
+      if (storedLeadData) {
+        try {
+          const parsedData = JSON.parse(storedLeadData);
+          // Only merge if Firestore doesn't already have these fields or if they are empty
+          profileData = {
+            ...profileData,
+            whatsapp: (profileData as any).whatsapp || parsedData.whatsapp,
+            fieldOfInterest: (profileData as any).fieldOfInterest || parsedData.fieldOfInterest,
+            cgpa: (profileData as any).cgpa || parsedData.cgpa,
+            financialReadiness: (profileData as any).financialReadiness || parsedData.financialReadiness,
+            highSchoolExam: (profileData as any).highSchoolExam || parsedData.highSchoolExam,
+            subjects: (profileData as any).subjects || parsedData.subjects,
+          };
+            
+          // Recalculate priority
+          let hasHighGrades = false;
+          if (parsedData.academicStatus === "High School") {
+             const highGradesCount = ((profileData as any).subjects || []).filter((sub: any) => ['A1', 'B2', 'B3'].includes(sub.grade)).length;
+             if (highGradesCount >= 5) hasHighGrades = true;
+          } else {
+             const cgpaVal = parseFloat((profileData as any).cgpa);
+             if (!isNaN(cgpaVal) && cgpaVal >= 3.5) hasHighGrades = true;
+          }
+          (profileData as any).isHighPriority = ['High', 'Sponsor'].includes((profileData as any).financialReadiness) && hasHighGrades;
+
+          // Clear local storage after sync
+          localStorage.removeItem('move2deutschland_lead_form');
+            
+          // Save the merged data back to Firestore
+          await setDoc(userDocRef, {
+            email: currentUser.email,
+            profile: profileData
+          }, { merge: true });
+        } catch (e) {
+          console.error("Error parsing lead data:", e);
+        }
+      } else if (!userDoc.exists()) {
+        // If no doc and no lead data, create initial doc
+        await setDoc(userDocRef, {
+          email: currentUser.email,
+          profile: {
+            name: currentUser.displayName || '',
+            status: 'pending'
+          }
+        }, { merge: true });
+      }
+
+      // Pre-fill the 'Edit Profile' modal's form fields with the latest data
+      setEditProfileData({
+        displayName: (profileData as any).name || currentUser.displayName || '',
+        cgpa: (profileData as any).cgpa || '',
+        institution: (profileData as any).institution || '',
+        fieldOfInterest: (profileData as any).fieldOfInterest || '',
+        financialReadiness: (profileData as any).financialReadiness || '',
+        highSchoolExam: (profileData as any).highSchoolExam || '',
+        subjects: (profileData as any).subjects || [],
+      });
+
+      // Update other UI states
+      if ((profileData as any).cgpa) {
+        setCgpa((profileData as any).cgpa.toString());
+        calculateGrade((profileData as any).cgpa.toString());
+      }
+
+      if (docData) {
+        setDocStatuses(prev => ({
+          ...prev,
+          waec: (docData as any).waec?.status || 'missing',
+          transcript: (docData as any).transcript?.status || 'missing',
+          passport: (docData as any).passport?.status || 'missing',
+        }));
+      }
+
+      // Data loaded successfully
+      setLoadError(null);
+    } catch (error: any) {
+      const isPermissionError = error?.code === 'permission-denied' || 
+        error?.message?.includes('Missing or insufficient permissions');
+
+      if (isPermissionError && !isRetry) {
+        // Token may be stale — force refresh and retry once
+        console.warn('Firestore permission denied. Forcing token refresh and retrying...');
+        try {
+          await currentUser.reload();
+          await currentUser.getIdToken(true);
+          return loadUserData(currentUser, true);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          setLoadError('Unable to load your data. Your email verification may still be processing. Please sign out and sign back in.');
+        }
+      } else if (isPermissionError) {
+        setLoadError('Unable to load your data. Your email verification may still be processing. Please sign out and sign back in.');
+      } else {
+        console.error('Error loading user data:', error);
+        setLoadError('Something went wrong while loading your data. Please try again.');
+      }
+    }
+  };
 
   useEffect(() => {
     document.title = "Candidate Dashboard | Move2Deutschland";
@@ -88,119 +244,12 @@ export default function Dashboard() {
         }
 
         setUser(currentUser);
+        setIsLoading(true);
+        setLoadError(null);
         
-        // Load user data from Firestore
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          let profileData = {};
-          let docData = {};
-
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            profileData = data.profile || {};
-            docData = data.documents || {};
-            setAppStatus(data.status || 'pending');
-            setOpportunityCardData(data.opportunityCard || null);
-          }
-
-          // Sync Chancenkarte point calculator if exists (for users coming from Opportunity Card quiz)
-          const storedChancenkarte = localStorage.getItem('move2deutschland_chancenkarte_form');
-          if (storedChancenkarte) {
-            try {
-              const parsedChancenkarte = JSON.parse(storedChancenkarte);
-              const opCardData = {
-                ...parsedChancenkarte,
-                calculatedAt: new Date().toISOString()
-              };
-              await setDoc(userDocRef, {
-                opportunityCard: opCardData
-              }, { merge: true });
-              setOpportunityCardData(opCardData);
-              localStorage.removeItem('move2deutschland_chancenkarte_form');
-            } catch (e) {
-              console.error("Error syncing Chancenkarte data:", e);
-            }
-          }
-
-          // Sync local storage data if exists (for first-time users coming from landing page)
-          const storedLeadData = localStorage.getItem('move2deutschland_lead_form');
-          if (storedLeadData) {
-            try {
-              const parsedData = JSON.parse(storedLeadData);
-              // Only merge if Firestore doesn't already have these fields or if they are empty
-              profileData = {
-                ...profileData,
-                whatsapp: (profileData as any).whatsapp || parsedData.whatsapp,
-                fieldOfInterest: (profileData as any).fieldOfInterest || parsedData.fieldOfInterest,
-                cgpa: (profileData as any).cgpa || parsedData.cgpa,
-                financialReadiness: (profileData as any).financialReadiness || parsedData.financialReadiness,
-                highSchoolExam: (profileData as any).highSchoolExam || parsedData.highSchoolExam,
-                subjects: (profileData as any).subjects || parsedData.subjects,
-              };
-              
-              // Recalculate priority
-              let hasHighGrades = false;
-              if (parsedData.academicStatus === "High School") {
-                 const highGradesCount = ((profileData as any).subjects || []).filter((sub: any) => ['A1', 'B2', 'B3'].includes(sub.grade)).length;
-                 if (highGradesCount >= 5) hasHighGrades = true;
-              } else {
-                 const cgpaVal = parseFloat((profileData as any).cgpa);
-                 if (!isNaN(cgpaVal) && cgpaVal >= 3.5) hasHighGrades = true;
-              }
-              (profileData as any).isHighPriority = ['High', 'Sponsor'].includes((profileData as any).financialReadiness) && hasHighGrades;
-
-              // Clear local storage after sync
-              localStorage.removeItem('move2deutschland_lead_form');
-              
-              // Save the merged data back to Firestore
-              await setDoc(userDocRef, {
-                email: currentUser.email,
-                profile: profileData
-              }, { merge: true });
-            } catch (e) {
-              console.error("Error parsing lead data:", e);
-            }
-          } else if (!userDoc.exists()) {
-            // If no doc and no lead data, create initial doc
-            await setDoc(userDocRef, {
-              email: currentUser.email,
-              profile: {
-                name: currentUser.displayName || '',
-                status: 'pending'
-              }
-            }, { merge: true });
-          }
-
-          // Pre-fill the 'Edit Profile' modal's form fields with the latest data
-          setEditProfileData({
-            displayName: (profileData as any).name || currentUser.displayName || '',
-            cgpa: (profileData as any).cgpa || '',
-            institution: (profileData as any).institution || '',
-            fieldOfInterest: (profileData as any).fieldOfInterest || '',
-            financialReadiness: (profileData as any).financialReadiness || '',
-            highSchoolExam: (profileData as any).highSchoolExam || '',
-            subjects: (profileData as any).subjects || [],
-          });
-
-          // Update other UI states
-          if ((profileData as any).cgpa) {
-            setCgpa((profileData as any).cgpa.toString());
-            calculateGrade((profileData as any).cgpa.toString());
-          }
-
-          if (docData) {
-            setDocStatuses(prev => ({
-              ...prev,
-              waec: (docData as any).waec?.status || 'missing',
-              transcript: (docData as any).transcript?.status || 'missing',
-              passport: (docData as any).passport?.status || 'missing',
-            }));
-          }
-        } catch (error) {
-          console.error("Error loading user data:", error);
-        }
+        // Load user data from Firestore with retry logic
+        await loadUserData(currentUser);
+        setIsLoading(false);
       } else {
         navigate('/auth');
       }
@@ -208,18 +257,7 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const calculateGrade = (value: string) => {
-    const nMax = 5.0;
-    const nMin = 1.0;
-    const nd = parseFloat(value);
-    if (!isNaN(nd) && nd >= nMin && nd <= nMax) {
-      // Modified Bavarian Formula
-      const grade = ((nMax - nd) / (nMax - nMin)) * 3 + 1;
-      setGermanGrade(grade.toFixed(1));
-    } else {
-      setGermanGrade(null);
-    }
-  };
+
 
   const handleCgpaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -271,12 +309,11 @@ export default function Dashboard() {
       if (editProfileData.cgpa) {
         setCgpa(editProfileData.cgpa);
         calculateGrade(editProfileData.cgpa);
-      }
-
-      setIsEditProfileOpen(false);
+      }      setIsEditProfileOpen(false);
+      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile changes.");
+      toast.error("Failed to save profile changes.");
     } finally {
       setIsSavingProfile(false);
     }
@@ -292,7 +329,7 @@ export default function Dashboard() {
 
     const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a PDF or JPG file.');
+      toast.warning('Please upload a PDF or JPG file.');
       return;
     }
 
@@ -308,7 +345,7 @@ export default function Dashboard() {
       (error) => {
         console.error("Upload failed:", error);
         setUploadingDoc(null);
-        alert('Upload failed. Please try again.');
+        toast.error('Upload failed. Please try again.');
       },
       async () => {
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
@@ -327,6 +364,7 @@ export default function Dashboard() {
         setDocStatuses(prev => ({ ...prev, [docId]: 'pending' }));
         setUploadingDoc(null);
         setUploadProgress(prev => ({ ...prev, [docId]: 0 }));
+        toast.success(`${docId.toUpperCase()} uploaded successfully!`);
         
         // Reset file input
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -371,7 +409,7 @@ export default function Dashboard() {
   const handleSubmitApplication = async () => {
     const isHighSchool = editProfileData.highSchoolExam !== "" && editProfileData.subjects && editProfileData.subjects.length > 0;
     if (!user || (!isHighSchool && (!cgpa || !germanGrade))) {
-      alert("Please complete your academic profile first.");
+      toast.warning("Please complete your academic profile first.");
       return;
     }
     
@@ -406,10 +444,10 @@ export default function Dashboard() {
         }
       });
 
-      alert('Application submitted successfully! We will review your documents shortly.');
+      toast.success('Application submitted successfully! We will review your documents shortly.');
     } catch (error) {
       console.error("Submission failed:", error);
-      alert('Failed to submit application. Please try again.');
+      toast.error('Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -515,8 +553,9 @@ export default function Dashboard() {
       </div>
 
       {/* Sidebar (Desktop Only) */}
-      <aside className="hidden md:flex w-64 bg-prussian-blue/95 dark:bg-black/40 backdrop-blur-3xl border-r border-white/10 dark:border-slate-800 text-white flex-col min-h-screen sticky top-0 z-20 shadow-2xl transition-all">
-        <div className="p-6">
+      <aside className="hidden md:flex w-64 bg-prussian-blue/95 dark:bg-black/40 backdrop-blur-3xl border-r border-white/10 dark:border-slate-800 text-white flex-col h-screen sticky top-0 z-20 shadow-2xl transition-all">
+        {/* Scrollable Navigation Area */}
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
           <div className="mb-12">
             <Logo size="lg" variant="light" />
           </div>
@@ -543,7 +582,8 @@ export default function Dashboard() {
           </nav>
         </div>
         
-        <div className="mt-auto p-6">
+        {/* Pinned Bottom Section */}
+        <div className="p-6 border-t border-white/10 dark:border-slate-800">
           {checkIsAdminSync(user) && (
             <Link to="/admin" className="flex items-center gap-3 px-4 py-3 text-gold hover:bg-white/5 rounded-xl font-bold transition-colors mb-2">
               <ShieldAlert size={20} />
@@ -585,6 +625,109 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full relative z-10 pb-40 md:pb-12">
+        {/* Error Banner */}
+        {loadError && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={20} className="text-red-500 dark:text-red-400 shrink-0" />
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">{loadError}</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={async () => {
+                  if (user) {
+                    setIsLoading(true);
+                    setLoadError(null);
+                    await loadUserData(user);
+                    setIsLoading(false);
+                  }
+                }}
+                className="flex-1 sm:flex-none px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Skeleton */}
+        {isLoading ? (
+          <div className="animate-pulse space-y-8">
+            {/* Greeting Skeleton */}
+            <div>
+              <div className="h-10 w-80 bg-slate-200 dark:bg-slate-800 rounded-xl mb-2"></div>
+              <div className="h-5 w-96 bg-slate-100 dark:bg-slate-800/60 rounded-lg"></div>
+            </div>
+            {/* Progress Tracker Skeleton */}
+            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl border border-white/50 dark:border-white/10 p-6 md:p-8">
+              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg mb-8"></div>
+              <div className="flex justify-between">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                    <div className="h-4 w-20 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Academic Profile Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl border border-white/50 dark:border-white/10 p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                    <div>
+                      <div className="h-6 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg mb-1"></div>
+                      <div className="h-4 w-64 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl"></div>
+                    <div className="h-12 bg-slate-100 dark:bg-slate-800/60 rounded-xl"></div>
+                  </div>
+                </div>
+                {/* Document Cards Skeleton */}
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl border border-white/50 dark:border-white/10 p-6 md:p-8">
+                  <div className="h-6 w-44 bg-slate-200 dark:bg-slate-800 rounded-lg mb-4"></div>
+                  <div className="space-y-4">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                          <div>
+                            <div className="h-5 w-36 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+                            <div className="h-4 w-20 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="h-10 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Resource Hub Skeleton */}
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl rounded-2xl border border-white/50 dark:border-white/10 p-6">
+                <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg mb-4"></div>
+                <div className="space-y-4">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="bg-white/85 dark:bg-slate-900/85 rounded-2xl p-5 border border-slate-100 dark:border-slate-800">
+                      <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 mb-3"></div>
+                      <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+                      <div className="h-3 w-full bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
         <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <h1 className="font-heading text-3xl md:text-4xl font-bold text-prussian-blue dark:text-white mb-2">
@@ -918,6 +1061,7 @@ export default function Dashboard() {
             </div>
           </section>
         </div>
+      </>)}
       </main>
 
       {/* Edit Profile Modal */}
