@@ -280,7 +280,7 @@ graph TD
 | 2.1 | Fix sidebar overflow | 🔴 Critical | `[x]` |
 | 3.1 | Sanitize Firebase error messages | 🔴 Critical | `[x]` |
 | 4.1 | Add password visibility toggle | 🟠 High | `[x]` |
-| 5.1 | Wire up resource downloads | 🟠 High | `[ ]` |
+| 5.1 | Wire up resource downloads | 🟠 High | `[x]` |
 | 6.1 | Replace `alert()` with toast system | 🟠 High | `[x]` |
 | 7.1 | Add loading/skeleton state | 🟠 High | `[ ]` |
 | 8.1 | Disable Submit until ready | 🟠 High | `[ ]` |

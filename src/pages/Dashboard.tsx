@@ -527,9 +527,9 @@ export default function Dashboard() {
   };
 
   const resources = [
-    { id: 1, title: 'Blocked Account Guide', description: 'Step-by-step instructions for opening your Sperrkonto.', size: '2.4 MB', icon: Landmark, isNew: true },
-    { id: 2, title: 'Health Insurance Overview', description: 'Comparing public vs. private insurance options.', size: '1.8 MB', icon: ShieldCheck, isNew: false },
-    { id: 3, title: 'Visa Application Checklist', description: 'Official documents required for German embassy appointment.', size: '1.2 MB', icon: FileCheck, isNew: true },
+    { id: 1, title: 'Blocked Account Guide', description: 'Step-by-step instructions for opening your Sperrkonto.', size: '2.4 MB', icon: Landmark, isNew: true, url: '/resources/blocked_account_guide.pdf', filename: 'Blocked_Account_Guide.pdf' },
+    { id: 2, title: 'Health Insurance Overview', description: 'Comparing public vs. private insurance options.', size: '1.8 MB', icon: ShieldCheck, isNew: false, url: '/resources/health_insurance_overview.pdf', filename: 'Health_Insurance_Overview.pdf' },
+    { id: 3, title: 'Visa Application Checklist', description: 'Official documents required for German embassy appointment.', size: '1.2 MB', icon: FileCheck, isNew: true, url: '/resources/visa_application_checklist.pdf', filename: 'Visa_Application_Checklist.pdf' },
   ];
 
   return (
@@ -1023,9 +1023,14 @@ export default function Dashboard() {
                             </span>
                           )}
                         </div>
-                        <button className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-prussian-blue dark:hover:text-gold flex items-center justify-center group-hover:bg-gold group-hover:text-prussian-blue transition-all duration-300 group-hover:scale-110 cursor-pointer">
+                        <a 
+                          href={resource.url}
+                          download={resource.filename}
+                          className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-prussian-blue dark:hover:text-gold flex items-center justify-center group-hover:bg-gold group-hover:text-prussian-blue transition-all duration-300 group-hover:scale-110 cursor-pointer"
+                          title="Download PDF"
+                        >
                           <Download size={16} className="group-hover:translate-y-0.5 transition-transform duration-200" />
-                        </button>
+                        </a>
                       </div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-prussian-blue dark:text-white text-sm">{resource.title}</h3>
