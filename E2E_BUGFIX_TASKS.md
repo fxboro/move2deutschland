@@ -282,7 +282,7 @@ graph TD
 | 4.1 | Add password visibility toggle | 🟠 High | `[x]` |
 | 5.1 | Wire up resource downloads | 🟠 High | `[x]` |
 | 6.1 | Replace `alert()` with toast system | 🟠 High | `[x]` |
-| 7.1 | Add loading/skeleton state | 🟠 High | `[ ]` |
+| 7.1 | Add loading/skeleton state | 🟠 High | `[x]` |
 | 8.1 | Disable Submit until ready | 🟠 High | `[ ]` |
 | 9.1 | Fix mobile double-bar overlap | 🟡 Medium | `[ ]` |
 | 10.1 | Add dark mode toggle | 🟡 Medium | `[ ]` |
