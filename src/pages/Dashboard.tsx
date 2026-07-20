@@ -336,50 +336,97 @@ export default function Dashboard() {
     fileInputRef.current?.click();
   };
 
-  const uploadFile = async (file: File, docId: string) => {
+  const getFileType = (file: File): string => {
+    if (file.type && file.type.trim() !== '') {
+      return file.type.toLowerCase();
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    return '';
+  };
+
+  const uploadFile = async (file: File, docId: string, isRetry = false) => {
     if (!user) return;
 
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
-    if (!validTypes.includes(file.type)) {
-      toast.warning('Please upload a PDF or JPG file.');
+    const mimeType = getFileType(file);
+    const isValidPDF = mimeType === 'application/pdf' || mimeType === 'application/x-pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isValidImage = mimeType.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(file.name);
+
+    if (!isValidPDF && !isValidImage) {
+      toast.warning('Please upload a valid PDF, JPG, or PNG file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.warning('File size exceeds 10MB limit. Please upload a smaller file.');
       return;
     }
 
     setUploadingDoc(docId);
+    const finalContentType = isValidPDF ? 'application/pdf' : (mimeType || 'image/jpeg');
     const storageRef = ref(storage, `users/${user.uid}/documents/${docId}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const metadata = { contentType: finalContentType };
+
+    const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
     uploadTask.on('state_changed', 
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         setUploadProgress(prev => ({ ...prev, [docId]: progress }));
       },
-      (error) => {
-        console.error("Upload failed:", error);
-        setUploadingDoc(null);
-        toast.error('Upload failed. Please try again.');
-      },
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, {
-          documents: {
-            [docId]: {
-              url: downloadURL,
-              status: 'pending',
-              uploadedAt: new Date().toISOString()
-            }
-          }
-        }, { merge: true });
+      async (error: any) => {
+        console.error("Upload error:", error);
+        const isPermissionError = error?.code === 'storage/unauthorized' || 
+          error?.message?.includes('user does not have permission');
 
-        setDocStatuses(prev => ({ ...prev, [docId]: 'pending' }));
+        if (isPermissionError && !isRetry) {
+          console.warn('Storage permission error. Forcing token refresh and retrying upload...');
+          try {
+            await user.reload();
+            await user.getIdToken(true);
+            return uploadFile(file, docId, true);
+          } catch (refreshErr) {
+            console.error('Token refresh failed during file upload:', refreshErr);
+          }
+        }
+
         setUploadingDoc(null);
         setUploadProgress(prev => ({ ...prev, [docId]: 0 }));
-        toast.success(`${docId.toUpperCase()} uploaded successfully!`);
-        
-        // Reset file input
+        if (isPermissionError) {
+          toast.error('Permission denied. Please check email verification or try signing in again.');
+        } else {
+          toast.error('Upload failed. Please try again.');
+        }
+
         if (fileInputRef.current) fileInputRef.current.value = '';
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            documents: {
+              [docId]: {
+                url: downloadURL,
+                status: 'pending',
+                uploadedAt: new Date().toISOString()
+              }
+            }
+          }, { merge: true });
+
+          setDocStatuses(prev => ({ ...prev, [docId]: 'pending' }));
+          toast.success(`${docId.toUpperCase()} uploaded successfully!`);
+        } catch (dbErr) {
+          console.error("Error saving document status to Firestore:", dbErr);
+          toast.error("File uploaded but failed to update status. Please refresh.");
+        } finally {
+          setUploadingDoc(null);
+          setUploadProgress(prev => ({ ...prev, [docId]: 0 }));
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
       }
     );
   };
@@ -980,7 +1027,7 @@ export default function Dashboard() {
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileChange} 
-                accept=".pdf,.jpg,.jpeg" 
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" 
                 className="hidden" 
               />
 
