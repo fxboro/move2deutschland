@@ -14,11 +14,13 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import ResetPassword from './pages/ResetPassword';
 import { ToastProvider } from './components/Toast';
+import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   return (
     <ToastProvider>
-      <Router>
+      <ThemeProvider>
+        <Router>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
@@ -35,6 +37,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </Router>
-    </ToastProvider>
-  );
+    </ThemeProvider>
+  </ToastProvider>
+);
 }

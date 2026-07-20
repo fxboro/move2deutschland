@@ -283,10 +283,10 @@ graph TD
 | 5.1 | Wire up resource downloads | 🟠 High | `[x]` |
 | 6.1 | Replace `alert()` with toast system | 🟠 High | `[x]` |
 | 7.1 | Add loading/skeleton state | 🟠 High | `[x]` |
-| 8.1 | Disable Submit until ready | 🟠 High | `[ ]` |
+| 8.1 | Disable Submit until ready | 🟠 High | `[x]` |
 | 9.1 | Fix mobile double-bar overlap | 🟡 Medium | `[ ]` |
-| 10.1 | Add dark mode toggle | 🟡 Medium | `[ ]` |
-| 10.2 | Fix modal dark mode | 🟡 Medium | `[ ]` |
+| 10.1 | Add dark mode toggle | 🟡 Medium | `[x]` |
+| 10.2 | Fix modal dark mode | 🟡 Medium | `[x]` |
 | 11.1 | Forgot password inline feedback | 🟡 Medium | `[ ]` |
 | 12.1 | Remove hardcoded admin email | 🔵 Low | `[ ]` |
 | 13.1 | Verify WhatsApp number | 🔵 Low | `[ ]` |

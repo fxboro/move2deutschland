@@ -22,7 +22,9 @@ import {
   ArrowLeft,
   Landmark,
   ShieldCheck,
-  Compass
+  Compass,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { auth, db, storage } from '../firebase';
 import { checkIsAdmin, checkIsAdminSync } from '../utils/auth';
@@ -30,6 +32,7 @@ import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from
 import { doc, getDoc, setDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '../components/Toast';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Dashboard() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -72,6 +75,15 @@ export default function Dashboard() {
     highSchoolExam: '',
     subjects: [] as {name: string, grade: string}[]
   });
+
+  const { theme, toggleTheme } = useTheme();
+
+  // Submission gating logic
+  const isHighSchool = editProfileData.highSchoolExam !== "" && editProfileData.subjects && editProfileData.subjects.length > 0;
+  const isAcademicComplete = isHighSchool || (!!cgpa && parseFloat(cgpa) >= 1.0 && germanGrade !== null);
+  const hasUploadedDoc = Object.values(docStatuses).some(status => status === 'pending' || status === 'verified');
+  const isReadyToSubmit = isAcademicComplete && hasUploadedDoc;
+  const isAlreadySubmitted = ['submitted', 'reviewing', 'approved'].includes(appStatus);
 
   const calculateGrade = (value: string) => {
     const nMax = 5.0;
@@ -407,9 +419,17 @@ export default function Dashboard() {
   };
 
   const handleSubmitApplication = async () => {
-    const isHighSchool = editProfileData.highSchoolExam !== "" && editProfileData.subjects && editProfileData.subjects.length > 0;
-    if (!user || (!isHighSchool && (!cgpa || !germanGrade))) {
-      toast.warning("Please complete your academic profile first.");
+    if (isAlreadySubmitted) {
+      toast.info('Your application has already been submitted and is currently under review.');
+      return;
+    }
+
+    if (!isReadyToSubmit) {
+      if (!isAcademicComplete) {
+        toast.warning('Please complete your academic profile (CGPA or High School details) before submitting.');
+      } else if (!hasUploadedDoc) {
+        toast.warning('Please upload at least one required document (WAEC, Transcript, or Passport) before submitting.');
+      }
       return;
     }
     
@@ -542,6 +562,14 @@ export default function Dashboard() {
       <div className="md:hidden bg-prussian-blue text-white py-4 px-6 flex justify-between items-center z-20 shadow-md">
         <Logo size="md" variant="light" />
         <div className="flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20 transition-colors"
+            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={16} className="text-gold" /> : <Moon size={16} />}
+          </button>
           <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30">
             {user?.photoURL ? (
               <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -556,8 +584,16 @@ export default function Dashboard() {
       <aside className="hidden md:flex w-64 bg-prussian-blue/95 dark:bg-black/40 backdrop-blur-3xl border-r border-white/10 dark:border-slate-800 text-white flex-col h-screen sticky top-0 z-20 shadow-2xl transition-all">
         {/* Scrollable Navigation Area */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0">
-          <div className="mb-12">
+          <div className="mb-12 flex justify-between items-center">
             <Logo size="lg" variant="light" />
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white border border-white/10 cursor-pointer"
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
+            </button>
           </div>
           
           <nav className="space-y-2">
@@ -735,13 +771,34 @@ export default function Dashboard() {
             </h1>
             <p className="text-slate-500 dark:text-slate-400">Track your progress and manage your application documents.</p>
           </div>
-          <button 
-            onClick={handleSubmitApplication}
-            disabled={isSubmitting}
-            className="hidden md:flex items-center gap-2 bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 cursor-pointer shadow-md shadow-gold/20"
-          >
-            {isSubmitting ? 'Submitting...' : <><Send size={18} /> Submit Application</>}
-          </button>
+          <div className="relative group hidden md:block">
+            <button 
+              onClick={handleSubmitApplication}
+              disabled={!isReadyToSubmit || isSubmitting || isAlreadySubmitted}
+              className={`flex items-center gap-2 font-bold py-3 px-6 rounded-xl transition-all ${
+                isAlreadySubmitted
+                  ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 border border-green-200 dark:border-green-800/40 cursor-default'
+                  : isReadyToSubmit
+                    ? 'bg-gold text-prussian-blue hover:bg-yellow-400 cursor-pointer shadow-md shadow-gold/20'
+                    : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed opacity-60'
+              }`}
+            >
+              {isSubmitting ? (
+                'Submitting...'
+              ) : isAlreadySubmitted ? (
+                <><CheckCircle2 size={18} /> Application Submitted</>
+              ) : (
+                <><Send size={18} /> Submit Application</>
+              )}
+            </button>
+            {!isReadyToSubmit && !isAlreadySubmitted && (
+              <div className="absolute right-0 top-full mt-2 hidden group-hover:block w-72 p-3 bg-slate-900 text-white text-xs rounded-xl shadow-xl text-center z-50 pointer-events-none border border-slate-800">
+                {!isAcademicComplete 
+                  ? '⚠️ Complete your Academic Profile (CGPA or High School) to submit.' 
+                  : '⚠️ Upload at least 1 required document to submit.'}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Application Progress Tracker */}
@@ -995,14 +1052,31 @@ export default function Dashboard() {
             </div>
             
             {/* Mobile Sticky Submit Button Bar */}
-            <div className="md:hidden fixed bottom-[60px] left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/80 p-4 z-30 flex justify-center items-center shadow-lg">
+            <div className="md:hidden fixed bottom-[60px] left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/80 p-4 z-30 flex flex-col justify-center items-center shadow-lg gap-1.5">
               <button 
                 onClick={handleSubmitApplication}
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 bg-gold text-prussian-blue font-bold py-3.5 px-6 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-50 shadow-md shadow-gold/20 cursor-pointer"
+                disabled={!isReadyToSubmit || isSubmitting || isAlreadySubmitted}
+                className={`w-full flex items-center justify-center gap-2 font-bold py-3.5 px-6 rounded-xl transition-colors shadow-md ${
+                  isAlreadySubmitted
+                    ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 border border-green-200 dark:border-green-800/40 cursor-default'
+                    : isReadyToSubmit
+                      ? 'bg-gold text-prussian-blue hover:bg-yellow-400 shadow-gold/20 cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed opacity-60'
+                }`}
               >
-                {isSubmitting ? 'Submitting...' : <><Send size={18} /> Submit Application</>}
+                {isSubmitting ? (
+                  'Submitting...'
+                ) : isAlreadySubmitted ? (
+                  <><CheckCircle2 size={18} /> Application Submitted</>
+                ) : (
+                  <><Send size={18} /> Submit Application</>
+                )}
               </button>
+              {!isReadyToSubmit && !isAlreadySubmitted && (
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center font-medium">
+                  {!isAcademicComplete ? '⚠️ Complete academic profile to enable submit' : '⚠️ Upload at least 1 document to enable submit'}
+                </p>
+              )}
             </div>
 
           </section>
@@ -1078,45 +1152,45 @@ export default function Dashboard() {
 
       {/* Edit Profile Modal */}
       {isEditProfileOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-prussian-blue/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex justify-between items-center p-6 border-b border-slate-200/50">
-              <h3 className="font-heading text-xl font-bold text-prussian-blue">Edit Profile</h3>
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-heading text-xl font-bold text-prussian-blue dark:text-white">Edit Profile</h3>
               <button 
                 onClick={() => setIsEditProfileOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <X size={24} />
               </button>
             </div>
             <form onSubmit={handleSaveProfile} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Display Name</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Display Name</label>
                 <input 
                   type="text" 
                   value={editProfileData.displayName}
                   onChange={(e) => setEditProfileData({...editProfileData, displayName: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Institution</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Institution</label>
                 <input 
                   type="text" 
                   value={editProfileData.institution}
                   onChange={(e) => setEditProfileData({...editProfileData, institution: e.target.value})}
                   placeholder="e.g. University of Lagos"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all"
                 />
               </div>
               {!editProfileData.highSchoolExam && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">CGPA (5.0 Scale)</label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">CGPA (5.0 Scale)</label>
                     <input 
                       type="number" 
                       step="0.01"
@@ -1124,64 +1198,64 @@ export default function Dashboard() {
                       max="5.0"
                       value={editProfileData.cgpa}
                       onChange={(e) => setEditProfileData({...editProfileData, cgpa: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Field of Interest</label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Field of Interest</label>
                     <select 
                       value={editProfileData.fieldOfInterest}
                       onChange={(e) => setEditProfileData({...editProfileData, fieldOfInterest: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all cursor-pointer"
                     >
-                      <option value="">Select Field</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="IT & Computer Science">IT & Computer Science</option>
-                      <option value="Healthcare & Medicine">Healthcare & Medicine</option>
-                      <option value="Business & Finance">Business & Finance</option>
-                      <option value="Arts & Humanities">Arts & Humanities</option>
-                      <option value="Other">Other</option>
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Field</option>
+                      <option value="Engineering" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Engineering</option>
+                      <option value="IT & Computer Science" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">IT & Computer Science</option>
+                      <option value="Healthcare & Medicine" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Healthcare & Medicine</option>
+                      <option value="Business & Finance" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Business & Finance</option>
+                      <option value="Arts & Humanities" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Arts & Humanities</option>
+                      <option value="Other" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Other</option>
                     </select>
                   </div>
                 </div>
               )}
               {editProfileData.highSchoolExam && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Field of Interest</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Field of Interest</label>
                   <select 
                     value={editProfileData.fieldOfInterest}
                     onChange={(e) => setEditProfileData({...editProfileData, fieldOfInterest: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all cursor-pointer"
                   >
-                    <option value="">Select Field</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="IT & Computer Science">IT & Computer Science</option>
-                    <option value="Healthcare & Medicine">Healthcare & Medicine</option>
-                    <option value="Business & Finance">Business & Finance</option>
-                    <option value="Arts & Humanities">Arts & Humanities</option>
-                    <option value="Other">Other</option>
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Field</option>
+                    <option value="Engineering" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Engineering</option>
+                    <option value="IT & Computer Science" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">IT & Computer Science</option>
+                    <option value="Healthcare & Medicine" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Healthcare & Medicine</option>
+                    <option value="Business & Finance" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Business & Finance</option>
+                    <option value="Arts & Humanities" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Arts & Humanities</option>
+                    <option value="Other" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Other</option>
                   </select>
                 </div>
               )}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Financial Readiness</label>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Financial Readiness</label>
                 <select 
                   value={editProfileData.financialReadiness}
                   onChange={(e) => setEditProfileData({...editProfileData, financialReadiness: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/50 border border-slate-200 focus:border-prussian-blue focus:ring-2 focus:ring-prussian-blue/20 outline-none transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-prussian-blue dark:focus:border-gold focus:ring-2 focus:ring-prussian-blue/20 dark:focus:ring-gold/20 outline-none transition-all cursor-pointer"
                 >
-                  <option value="">Select Readiness</option>
-                  <option value="High">I have the €11,904 ready</option>
-                  <option value="Sponsor">I have a sponsor in Germany</option>
-                  <option value="Medium">I am currently saving up</option>
-                  <option value="Low">I need a scholarship</option>
+                  <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Readiness</option>
+                  <option value="High" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">I have the €11,904 ready</option>
+                  <option value="Sponsor" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">I have a sponsor in Germany</option>
+                  <option value="Medium" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">I am currently saving up</option>
+                  <option value="Low" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">I need a scholarship</option>
                 </select>
               </div>
               <div className="pt-4">
                 <button 
                   type="submit"
                   disabled={isSavingProfile}
-                  className="w-full bg-prussian-blue text-white font-bold py-3 px-4 rounded-xl hover:bg-prussian-blue/90 transition-colors disabled:opacity-50"
+                  className="w-full bg-prussian-blue text-white dark:bg-gold dark:text-prussian-blue font-bold py-3 px-4 rounded-xl hover:bg-prussian-blue/90 dark:hover:bg-yellow-400 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isSavingProfile ? 'Saving...' : 'Save Changes'}
                 </button>

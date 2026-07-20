@@ -13,12 +13,15 @@ import {
   GraduationCap,
   HelpCircle,
   PhoneCall,
-  Star
+  Star,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Logo from './Logo';
 import { checkIsAdminSync } from '../utils/auth';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   isAlwaysSolid?: boolean;
@@ -33,6 +36,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -130,6 +134,14 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       
       {/* Desktop Actions / Auth dropdown */}
       <div className="hidden lg:flex items-center gap-4">
+        <button
+          onClick={toggleTheme}
+          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
+          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
+        </button>
         {user ? (
           <div className="relative" ref={dropdownRef}>
             <button 
@@ -237,11 +249,17 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                     className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
                     role="menuitem"
                   >
-                    <Icon size={18} className="text-gold" />
-                    <span>{link.label}</span>
                   </Link>
                 );
               })}
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-colors w-full text-left"
+                role="menuitem"
+              >
+                {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} className="text-gold" />}
+                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
             </div>
 
             {user ? (
