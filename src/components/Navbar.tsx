@@ -129,7 +129,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       </div>
       
       {/* Desktop Actions / Auth dropdown */}
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden lg:flex items-center gap-4">
         {user ? (
           <div className="relative" ref={dropdownRef}>
             <button 

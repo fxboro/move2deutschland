@@ -533,7 +533,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-100 dark:from-slate-950 dark:via-prussian-blue/20 dark:to-slate-900 text-slate-900 dark:text-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden transition-colors duration-300">
       {/* Abstract Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-gold/10 blur-[100px] pointer-events-none z-0"></div>
@@ -624,7 +624,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full relative z-10 pb-40 md:pb-12">
+      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full relative z-10 pb-48 md:pb-12">
         {/* Error Banner */}
         {loadError && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -749,20 +749,27 @@ export default function Dashboard() {
           <h2 className="font-heading text-xl font-bold text-prussian-blue dark:text-gold mb-8">Application Progress</h2>
           
           <div className="relative">
-            {/* Progress Line */}
+            {/* Progress Line (Desktop) */}
             <div className="absolute top-5 left-0 w-full h-1 bg-slate-100 rounded-full hidden md:block"></div>
             <div 
               className="absolute top-5 left-0 h-1 bg-gold rounded-full hidden md:block transition-all duration-1000"
               style={{ width: `${getProgressPercentage()}%` }}
             ></div>
 
+            {/* Vertical Connecting Line (Mobile) */}
+            <div className="absolute top-5 left-5 w-0.5 bg-slate-200 dark:bg-slate-700 md:hidden" style={{ height: 'calc(100% - 40px)' }}></div>
+            <div 
+              className="absolute top-5 left-5 w-0.5 bg-gold md:hidden transition-all duration-1000"
+              style={{ height: `calc((100% - 40px) * ${getProgressPercentage() / 100})` }}
+            ></div>
+
             <div className="flex flex-col md:flex-row justify-between relative z-10 gap-6 md:gap-0">
               {steps.map((step, index) => (
                 <div key={step.id} className="flex md:flex-col items-center md:text-center gap-4 md:gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm transition-colors ${
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 border-slate-50 dark:border-slate-950 shadow-sm transition-colors ${
                     step.status === 'completed' ? 'bg-green-500 text-white' :
                     step.status === 'current' ? 'bg-gold text-prussian-blue' :
-                    'bg-slate-100 text-slate-400'
+                    'bg-slate-100 dark:bg-slate-800 text-slate-400'
                   }`}>
                     {step.status === 'completed' ? <CheckCircle2 size={20} /> : 
                      step.status === 'current' ? <span className="font-bold text-sm">{step.id}</span> :
@@ -770,11 +777,11 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className={`font-bold text-sm md:text-base ${
-                      step.status === 'upcoming' ? 'text-slate-400' : 'text-prussian-blue'
+                      step.status === 'upcoming' ? 'text-slate-400 dark:text-slate-500' : 'text-prussian-blue dark:text-white'
                     }`}>
                       {step.title}
                     </p>
-                    <p className="text-xs text-slate-500 md:hidden mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 md:hidden mt-0.5">
                       {step.status === 'completed' ? 'Completed' : step.status === 'current' ? 'In Progress' : 'Pending'}
                     </p>
                   </div>
@@ -988,7 +995,7 @@ export default function Dashboard() {
             </div>
             
             {/* Mobile Sticky Submit Button Bar */}
-            <div className="md:hidden fixed bottom-[56px] left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/80 p-4 z-30 flex justify-center items-center shadow-lg">
+            <div className="md:hidden fixed bottom-[60px] left-0 right-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800/80 p-4 z-30 flex justify-center items-center shadow-lg">
               <button 
                 onClick={handleSubmitApplication}
                 disabled={isSubmitting}

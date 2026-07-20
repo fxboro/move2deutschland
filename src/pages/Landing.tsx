@@ -107,7 +107,7 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section 
-        className="relative text-white pt-20 pb-24 sm:pb-40 px-6 md:px-12 overflow-hidden"
+        className="relative text-white pt-28 sm:pt-20 pb-24 sm:pb-40 px-6 md:px-12 overflow-hidden"
       >
         {/* Animated Background Image with Ken Burns loop */}
         <motion.div 
@@ -199,7 +199,7 @@ export default function Landing() {
       </div>
 
       {/* Integration Point: Lead Qualification Questionnaire */}
-      <section id="questionnaire" className="relative -mt-32 z-20 px-6 md:px-12 max-w-3xl mx-auto">
+      <section id="questionnaire" className="relative -mt-20 sm:-mt-32 z-20 px-6 md:px-12 max-w-3xl mx-auto">
         <LeadQuestionnaire />
       </section>
 

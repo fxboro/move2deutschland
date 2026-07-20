@@ -231,10 +231,12 @@ export default function Auth() {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 md:p-16 relative z-25 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl shadow-2xl transition-colors duration-300">
-        <Logo size="lg" variant="dark" className="absolute top-8 left-8 lg:hidden" />
+      <div className="w-full lg:w-1/2 flex flex-col lg:flex-row items-center justify-center p-6 sm:p-12 md:p-16 relative z-25 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl shadow-2xl transition-colors duration-300">
 
         <div className="w-full max-w-md">
+          <div className="lg:hidden mb-8">
+            <Logo size="lg" variant="dark" />
+          </div>
           <Link to="/" className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-prussian-blue dark:hover:text-gold mb-8 transition-colors">
             <ArrowLeft size={16} className="mr-2" />
             Back to Home

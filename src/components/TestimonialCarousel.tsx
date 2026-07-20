@@ -108,7 +108,7 @@ export default function TestimonialCarousel() {
           </p>
         </div>
 
-        <div className="relative min-h-[380px] md:min-h-[280px] flex items-center justify-center">
+        <div className="relative min-h-[320px] md:min-h-[280px] flex items-center justify-center px-10 md:px-0">
           
           {/* Testimonial Card Display */}
           <AnimatePresence mode="wait">
@@ -156,14 +156,14 @@ export default function TestimonialCarousel() {
           {/* Left/Right Buttons */}
           <button 
             onClick={handlePrev}
-            className="absolute left-[-16px] md:left-[-40px] w-12 h-12 rounded-full bg-slate-800 hover:bg-gold hover:text-prussian-blue text-white flex items-center justify-center border border-white/10 transition-all shadow-lg hover:scale-105"
+            className="absolute left-0 md:left-[-40px] w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-800 hover:bg-gold hover:text-prussian-blue text-white flex items-center justify-center border border-white/10 transition-all shadow-lg hover:scale-105"
             aria-label="Previous testimonial"
           >
             <ChevronLeft size={20} />
           </button>
           <button 
             onClick={handleNext}
-            className="absolute right-[-16px] md:right-[-40px] w-12 h-12 rounded-full bg-slate-800 hover:bg-gold hover:text-prussian-blue text-white flex items-center justify-center border border-white/10 transition-all shadow-lg hover:scale-105"
+            className="absolute right-0 md:right-[-40px] w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-800 hover:bg-gold hover:text-prussian-blue text-white flex items-center justify-center border border-white/10 transition-all shadow-lg hover:scale-105"
             aria-label="Next testimonial"
           >
             <ChevronRight size={20} />
