@@ -119,13 +119,13 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       <Logo size="lg" variant="light" />
 
       {/* Desktop Links */}
-      <div className="hidden lg:flex items-center gap-6">
+      <div className="hidden lg:flex items-center gap-3 xl:gap-6">
         {navLinks.map((link) => (
           <Link
             key={link.label}
             to={link.href.startsWith('#') ? `/${link.href}` : link.href}
             onClick={(e) => handleNavClick(e, link.href)}
-            className="text-sm font-semibold text-slate-100 hover:text-gold transition-colors duration-200"
+            className="text-xs xl:text-sm font-semibold text-slate-100 hover:text-gold transition-colors duration-200 whitespace-nowrap"
           >
             {link.label}
           </Link>
@@ -133,10 +133,10 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       </div>
       
       {/* Desktop Actions / Auth dropdown */}
-      <div className="hidden lg:flex items-center gap-4">
+      <div className="hidden lg:flex items-center gap-2 xl:gap-4 shrink-0">
         <button
           onClick={toggleTheme}
-          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
+          className="w-9 h-9 xl:w-10 xl:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer shrink-0"
           title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
           aria-label="Toggle theme"
         >
@@ -146,16 +146,16 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-4 rounded-full hover:bg-white/20 transition-all shadow-sm group"
+              className="flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-3 xl:px-4 rounded-full hover:bg-white/20 transition-all shadow-sm group text-xs xl:text-sm"
             >
-              <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30">
+              <div className="w-7 h-7 xl:w-8 xl:h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30 shrink-0">
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'
                 )}
               </div>
-              <span className="max-w-[120px] truncate">{user.displayName || 'Account'}</span>
+              <span className="max-w-[100px] xl:max-w-[120px] truncate">{user.displayName || 'Account'}</span>
               <ChevronDown size={16} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
@@ -204,26 +204,37 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
           </div>
         ) : (
           <>
-            <Link to="/auth" className="bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-6 rounded-full hover:bg-white/20 transition-colors shadow-sm text-sm">
+            <Link to="/auth" className="bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-4 xl:px-6 rounded-full hover:bg-white/20 transition-colors shadow-sm text-xs xl:text-sm">
               Login
             </Link>
-            <Link to="/auth" className="bg-gold text-prussian-blue font-bold py-2 px-6 rounded-full hover:bg-yellow-400 transition-colors shadow-sm text-sm">
+            <Link to="/auth" className="bg-gold text-prussian-blue font-bold py-2 px-4 xl:px-6 rounded-full hover:bg-yellow-400 transition-colors shadow-sm text-xs xl:text-sm">
               Apply Now
             </Link>
           </>
         )}
       </div>
 
-      {/* Mobile Toggle */}
-      <button 
-        className="lg:hidden text-white p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-lg transition-colors"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-expanded={isMobileMenuOpen}
-        aria-controls="mobile-menu"
-        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-      >
-        {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-      </button>
+      {/* Mobile / Tablet Controls (< lg) */}
+      <div className="flex lg:hidden items-center gap-3">
+        <button
+          onClick={toggleTheme}
+          className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
+          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
+        </button>
+
+        <button 
+          className="text-white p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-lg transition-colors cursor-pointer"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-menu"
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+        </button>
+      </div>
 
       {/* Mobile Dropdown Menu */}
       <AnimatePresence>
@@ -249,6 +260,8 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                     className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
                     role="menuitem"
                   >
+                    <Icon size={18} className="text-gold" />
+                    <span>{link.label}</span>
                   </Link>
                 );
               })}
