@@ -20,7 +20,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import Logo from "../components/Logo";
-import { checkIsAdmin } from "../utils/auth";
+import { checkIsAdmin, ensureUserDocumentExists } from "../utils/auth";
 import { useToast } from "../components/Toast";
 
 // Helper function to sanitize Firebase Auth error codes into friendly user messages
@@ -181,6 +181,10 @@ export default function Auth() {
         );
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: name });
+          await ensureUserDocumentExists({
+            ...userCredential.user,
+            displayName: name,
+          } as any);
           await sendEmailVerification(userCredential.user);
           navigate("/verify-email");
         }
@@ -202,6 +206,9 @@ export default function Auth() {
     try {
       setError(null);
       const result = await signInWithPopup(auth, googleProvider);
+      if (result.user) {
+        await ensureUserDocumentExists(result.user);
+      }
       if (result.user.emailVerified) {
         const isAdmin = await checkIsAdmin(result.user);
         if (isAdmin) {
