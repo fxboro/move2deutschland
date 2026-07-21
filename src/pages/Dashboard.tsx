@@ -22,9 +22,7 @@ import {
   ArrowLeft,
   Landmark,
   ShieldCheck,
-  Compass,
-  Sun,
-  Moon
+  Compass
 } from 'lucide-react';
 import { auth, db, storage } from '../firebase';
 import { checkIsAdmin, checkIsAdminSync } from '../utils/auth';
@@ -32,7 +30,6 @@ import { onAuthStateChanged, signOut, User as FirebaseUser, updateProfile } from
 import { doc, getDoc, setDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '../components/Toast';
-import { useTheme } from '../context/ThemeContext';
 
 export default function Dashboard() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -75,8 +72,6 @@ export default function Dashboard() {
     highSchoolExam: '',
     subjects: [] as {name: string, grade: string}[]
   });
-
-  const { theme, toggleTheme } = useTheme();
 
   // Submission gating logic
   const isHighSchool = editProfileData.highSchoolExam !== "" && editProfileData.subjects && editProfileData.subjects.length > 0;
@@ -600,7 +595,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col md:flex-row relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative overflow-hidden transition-colors duration-300">
       {/* Abstract Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-gold/10 blur-[100px] pointer-events-none z-0"></div>
@@ -609,14 +604,6 @@ export default function Dashboard() {
       <div className="md:hidden bg-prussian-blue text-white py-4 px-6 flex justify-between items-center z-20 shadow-md">
         <Logo size="md" variant="light" />
         <div className="flex items-center gap-3">
-          <button
-            onClick={toggleTheme}
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20 transition-colors"
-            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun size={16} className="text-gold" /> : <Moon size={16} />}
-          </button>
           <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30">
             {user?.photoURL ? (
               <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -628,19 +615,11 @@ export default function Dashboard() {
       </div>
 
       {/* Sidebar (Desktop Only) */}
-      <aside className="hidden md:flex w-64 bg-prussian-blue/95 dark:bg-black/40 backdrop-blur-3xl border-r border-white/10 dark:border-slate-800 text-white flex-col h-screen sticky top-0 z-20 shadow-2xl transition-all">
+      <aside className="hidden md:flex w-64 bg-prussian-blue/95 backdrop-blur-3xl border-r border-white/10 text-white flex-col h-screen sticky top-0 z-20 shadow-2xl transition-all">
         {/* Scrollable Navigation Area */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0">
           <div className="mb-12 flex justify-between items-center">
             <Logo size="lg" variant="light" />
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white border border-white/10 cursor-pointer"
-              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
-            </button>
           </div>
           
           <nav className="space-y-2">

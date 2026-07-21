@@ -13,15 +13,12 @@ import {
   GraduationCap,
   HelpCircle,
   PhoneCall,
-  Star,
-  Sun,
-  Moon
+  Star
 } from 'lucide-react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Logo from './Logo';
 import { checkIsAdminSync } from '../utils/auth';
-import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   isAlwaysSolid?: boolean;
@@ -36,7 +33,6 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -112,7 +108,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl py-4 px-6 md:px-8 flex justify-between items-center z-50 rounded-2xl transition-all duration-300 ${
         isSolid 
           ? 'bg-prussian-blue/95 border border-prussian-blue/20 shadow-lg text-white' 
-          : 'bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/10 text-white'
+          : 'bg-white/10 backdrop-blur-xl border border-white/20 text-white'
       }`}
     >
       {/* Brand Logo */}
@@ -134,14 +130,6 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       
       {/* Desktop Actions / Auth dropdown */}
       <div className="hidden lg:flex items-center gap-2 xl:gap-4 shrink-0">
-        <button
-          onClick={toggleTheme}
-          className="w-9 h-9 xl:w-10 xl:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer shrink-0"
-          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
-        </button>
         {user ? (
           <div className="relative" ref={dropdownRef}>
             <button 
@@ -165,19 +153,19 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 dark:border-slate-800 overflow-hidden z-[60]"
+                  className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 overflow-hidden z-[60]"
                 >
-                  <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-                    <p className="text-sm font-bold text-prussian-blue dark:text-white truncate">{user.displayName || 'Candidate'}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                  <div className="p-4 border-b border-slate-100">
+                    <p className="text-sm font-bold text-prussian-blue truncate">{user.displayName || 'Candidate'}</p>
+                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>
                   <div className="p-2">
                     <Link 
                       to="/dashboard" 
                       onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
                     >
-                      <LayoutDashboard size={18} className="text-prussian-blue dark:text-gold" />
+                      <LayoutDashboard size={18} className="text-prussian-blue" />
                       Go to Dashboard
                     </Link>
                     {checkIsAdminSync(user) && (
@@ -192,7 +180,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                     )}
                     <button 
                       onClick={handleSignOut}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
                       <LogOut size={18} />
                       Sign Out
@@ -216,15 +204,6 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
 
       {/* Mobile / Tablet Controls (< lg) */}
       <div className="flex lg:hidden items-center gap-3">
-        <button
-          onClick={toggleTheme}
-          className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer"
-          title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} />}
-        </button>
-
         <button 
           className="text-white p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-lg transition-colors cursor-pointer"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -265,14 +244,6 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                   </Link>
                 );
               })}
-              <button
-                onClick={toggleTheme}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-colors w-full text-left"
-                role="menuitem"
-              >
-                {theme === 'dark' ? <Sun size={18} className="text-gold" /> : <Moon size={18} className="text-gold" />}
-                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-              </button>
             </div>
 
             {user ? (
