@@ -10,14 +10,15 @@ import { db } from "../firebase";
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
   if (!user) return false;
   try {
-    const tokenResult = await user.getIdTokenResult();
+    const tokenResult = await user.getIdTokenResult(true);
     if (tokenResult.claims.admin) {
       return true;
     }
   } catch (error) {
     console.error("Error fetching custom claims:", error);
   }
-  return user.email === "chimadayo43@gmail.com";
+  const adminEmails = ["chimadayo43@gmail.com", "admin@move2deutschland.com"];
+  return !!user.email && adminEmails.includes(user.email.toLowerCase());
 }
 
 /**

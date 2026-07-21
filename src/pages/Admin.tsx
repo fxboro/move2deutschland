@@ -89,6 +89,24 @@ export default function Admin() {
 
   const navigate = useNavigate();
 
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const usersData = querySnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+      setUsers(usersData);
+      toast.success("Data manually synced from Firestore!");
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      toast.error(`Sync error: ${error.message || "Missing permissions"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     document.title = "Admin Control Panel | Move2Deutschland";
     const metaDescription = document.querySelector('meta[name="description"]');
@@ -99,41 +117,66 @@ export default function Admin() {
       );
     }
 
+    let isMounted = true;
     let unsubscribeSnapshot: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+
       if (user) {
-        const isAdminUser = await checkIsAdmin(user);
-        if (isAdminUser) {
-          setIsAdmin(true);
-          setLoading(true);
-          
-          // Real-time Firestore Listener
-          unsubscribeSnapshot = onSnapshot(
-            collection(db, "users"),
-            (snapshot) => {
-              const usersData = snapshot.docs.map((docSnap) => ({
-                id: docSnap.id,
-                ...docSnap.data(),
-              }));
-              setUsers(usersData);
-              setLoading(false);
-            },
-            (error) => {
-              console.error("Real-time listener error:", error);
-              toast.error("Failed to sync live data from database.");
-              setLoading(false);
+        try {
+          // Force refresh token to obtain latest custom claims
+          await user.getIdToken(true);
+          const isAdminUser = await checkIsAdmin(user);
+          if (!isMounted) return;
+
+          if (isAdminUser) {
+            setIsAdmin(true);
+            setLoading(true);
+
+            // Clean up previous snapshot listener if re-authenticating
+            if (unsubscribeSnapshot) {
+              unsubscribeSnapshot();
+              unsubscribeSnapshot = null;
             }
-          );
-          return;
+
+            // Establish real-time Firestore listener
+            unsubscribeSnapshot = onSnapshot(
+              collection(db, "users"),
+              (snapshot) => {
+                if (!isMounted) return;
+                const usersData = snapshot.docs.map((docSnap) => ({
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                }));
+                setUsers(usersData);
+                setLoading(false);
+              },
+              (error) => {
+                if (!isMounted) return;
+                console.error("Real-time listener error:", error);
+                toast.error(`Live sync error: ${error.message || "Missing permissions"}`);
+                setLoading(false);
+              }
+            );
+            return;
+          }
+        } catch (authErr) {
+          console.error("Error verifying admin status:", authErr);
         }
       }
-      navigate("/dashboard"); // Redirect non-admins
+
+      if (isMounted) {
+        navigate("/dashboard"); // Redirect non-admins
+      }
     });
 
     return () => {
+      isMounted = false;
       unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
     };
   }, [navigate]);
 
@@ -591,6 +634,12 @@ export default function Admin() {
               </p>
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={fetchUsers}
+                className="bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 text-prussian-blue font-bold hover:bg-white transition-all flex items-center gap-2 text-sm"
+              >
+                <RefreshCw size={16} /> Sync Database
+              </button>
               <button
                 onClick={handleExportCSV}
                 className="bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 text-prussian-blue font-bold hover:bg-white transition-all flex items-center gap-2 text-sm"
