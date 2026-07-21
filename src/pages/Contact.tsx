@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import { Link } from "react-router-dom";
 import {
   MessageSquare,
   Mail,
@@ -13,9 +13,9 @@ import {
   Phone,
   User,
   ChevronDown,
-} from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+} from "lucide-react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 /* ───────────────────────── types / data ───────────────────────── */
 
@@ -31,47 +31,47 @@ interface ContactCard {
 const contactCards: ContactCard[] = [
   {
     icon: <MessageSquare className="w-6 h-6" />,
-    title: 'Chat on WhatsApp',
-    detail: '+234 812 345 6789',
-    sub: 'Quick replies within 2 hours',
-    href: 'https://wa.me/2348123456789?text=Hello%20Move2Deutschland',
+    title: "Chat on WhatsApp",
+    detail: "+234 812 345 6789",
+    sub: "Quick replies within 2 hours",
+    href: "https://wa.me/2348123456789?text=Hello%20Move2Deutschland",
     external: true,
   },
   {
     icon: <Mail className="w-6 h-6" />,
-    title: 'Send an Email',
-    detail: 'info@move2deutschland.com',
-    sub: 'We reply within 24 hours',
-    href: 'mailto:info@move2deutschland.com',
+    title: "Send an Email",
+    detail: "info@move2deutschland.com",
+    sub: "We reply within 24 hours",
+    href: "mailto:info@move2deutschland.com",
     external: false,
   },
   {
     icon: <Clock className="w-6 h-6" />,
-    title: 'Office Hours',
-    detail: 'Monday – Friday: 9 AM – 5 PM (WAT)',
-    sub: 'Saturday: 10 AM – 2 PM (WAT)',
+    title: "Office Hours",
+    detail: "Monday – Friday: 9 AM – 5 PM (WAT)",
+    sub: "Saturday: 10 AM – 2 PM (WAT)",
   },
   {
     icon: <MapPin className="w-6 h-6" />,
-    title: 'Our Office',
-    detail: 'Lagos, Nigeria (Consultations)',
-    sub: 'Germany (Operations)',
+    title: "Our Office",
+    detail: "Lagos, Nigeria (Consultations)",
+    sub: "Germany (Operations)",
   },
 ];
 
 const faqQuickLinks = [
-  'How much does the service cost?',
-  'Do I need to speak German?',
-  'What documents do I need?',
-  'How long does the process take?',
+  "How much does the service cost?",
+  "Do I need to speak German?",
+  "What documents do I need?",
+  "How long does the process take?",
 ];
 
 const subjectOptions = [
-  'General Inquiry',
-  'Study Route',
-  'Opportunity Card',
-  'Visa Support',
-  'Partnership',
+  "General Inquiry",
+  "Study Route",
+  "Opportunity Card",
+  "Visa Support",
+  "Partnership",
 ];
 
 /* ────────────────── animation helpers ────────────────── */
@@ -81,7 +81,7 @@ const fadeUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.1, ease: 'easeOut' },
+    transition: { duration: 0.5, delay: i * 0.1, ease: "easeOut" },
   }),
 };
 
@@ -100,29 +100,32 @@ export default function Contact() {
     document.title = "Contact Us | Move2Deutschland";
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute("content", "Get in touch with Move2Deutschland. Send us a message, chat with us on WhatsApp, or email us for study in Germany & Opportunity Card visa assistance.");
+      metaDescription.setAttribute(
+        "content",
+        "Get in touch with Move2Deutschland. Send us a message, chat with us on WhatsApp, or email us for study in Germany & Opportunity Card visa assistance.",
+      );
     }
   }, []);
 
   /* ── form state ── */
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
-    if (!fullName.trim()) next.fullName = 'Full name is required.';
+    if (!fullName.trim()) next.fullName = "Full name is required.";
     if (!email.trim()) {
-      next.email = 'Email is required.';
+      next.email = "Email is required.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      next.email = 'Please enter a valid email address.';
+      next.email = "Please enter a valid email address.";
     }
-    if (!subject) next.subject = 'Please select a subject.';
-    if (!message.trim()) next.message = 'Message is required.';
+    if (!subject) next.subject = "Please select a subject.";
+    if (!message.trim()) next.message = "Message is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -134,11 +137,11 @@ export default function Contact() {
 
   /* ────────── input classes ────────── */
   const inputCls =
-    'w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm text-slate-900 dark:text-slate-100';
-  const labelCls = 'text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block';
+    "w-full px-4 py-3 bg-slate-50  border border-slate-200  rounded-xl focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm text-slate-900 ";
+  const labelCls = "text-sm font-semibold text-slate-700  mb-1.5 block";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 transition-colors duration-300">
       <Navbar isAlwaysSolid />
 
       {/* ───────── 1. Hero Banner ───────── */}
@@ -178,7 +181,7 @@ export default function Contact() {
       </section>
 
       {/* gradient divider */}
-      <div className="h-24 bg-gradient-to-b from-prussian-blue to-slate-50 dark:to-slate-950" />
+      <div className="h-24 bg-gradient-to-b from-prussian-blue to-slate-50 " />
 
       {/* ───────── 2. Contact Grid ───────── */}
       <section className="py-24 px-6 md:px-12">
@@ -190,7 +193,7 @@ export default function Contact() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-lg border border-slate-100 dark:border-slate-850">
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-100 ">
               {submitted ? (
                 /* ── Success state ── */
                 <motion.div
@@ -201,22 +204,22 @@ export default function Contact() {
                   <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-2">
                     <CheckCircle className="w-8 h-8" />
                   </div>
-                  <h3 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-2xl font-heading font-bold text-slate-900 ">
                     Message Sent!
                   </h3>
-                  <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-                    Thank you, {fullName.split(' ')[0]}! We've received your
+                  <p className="text-slate-500 max-w-sm">
+                    Thank you, {fullName.split(" ")[0]}! We've received your
                     message and will get back to you within 24 hours.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
                       setSubmitted(false);
-                      setFullName('');
-                      setEmail('');
-                      setPhone('');
-                      setSubject('');
-                      setMessage('');
+                      setFullName("");
+                      setEmail("");
+                      setPhone("");
+                      setSubject("");
+                      setMessage("");
                       setErrors({});
                     }}
                     className="mt-4 text-sm font-semibold text-gold hover:underline cursor-pointer"
@@ -227,10 +230,10 @@ export default function Contact() {
               ) : (
                 /* ── Form ── */
                 <>
-                  <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white mb-1">
+                  <h2 className="text-2xl font-heading font-bold text-slate-900 mb-1">
                     Send Us a Message
                   </h2>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-8">
+                  <p className="text-slate-500 text-sm mb-8">
                     Fill in the form below and we'll respond as soon as
                     possible.
                   </p>
@@ -253,7 +256,7 @@ export default function Contact() {
                           aria-required="true"
                           aria-invalid={!!errors.fullName}
                           aria-describedby={
-                            errors.fullName ? 'fullName-err' : undefined
+                            errors.fullName ? "fullName-err" : undefined
                           }
                           placeholder="John Doe"
                           value={fullName}
@@ -284,7 +287,7 @@ export default function Contact() {
                           aria-required="true"
                           aria-invalid={!!errors.email}
                           aria-describedby={
-                            errors.email ? 'email-err' : undefined
+                            errors.email ? "email-err" : undefined
                           }
                           placeholder="you@example.com"
                           value={email}
@@ -329,7 +332,7 @@ export default function Contact() {
                           aria-required="true"
                           aria-invalid={!!errors.subject}
                           aria-describedby={
-                            errors.subject ? 'subject-err' : undefined
+                            errors.subject ? "subject-err" : undefined
                           }
                           value={subject}
                           onChange={(e) => setSubject(e.target.value)}
@@ -365,7 +368,7 @@ export default function Contact() {
                         aria-required="true"
                         aria-invalid={!!errors.message}
                         aria-describedby={
-                          errors.message ? 'message-err' : undefined
+                          errors.message ? "message-err" : undefined
                         }
                         placeholder="Tell us how we can help you…"
                         value={message}
@@ -413,13 +416,13 @@ export default function Contact() {
                     {card.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-heading font-bold text-slate-900 dark:text-white text-lg mb-0.5">
+                    <h3 className="font-heading font-bold text-slate-900 text-lg mb-0.5">
                       {card.title}
                     </h3>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                    <p className="text-sm text-slate-700 font-medium">
                       {card.detail}
                     </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{card.sub}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>
                   </div>
                   {card.href && (
                     <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-gold group-hover:translate-x-1 transition-all duration-300 shrink-0" />
@@ -428,17 +431,15 @@ export default function Contact() {
               );
 
               const cls =
-                'group bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-md border border-slate-100 dark:border-slate-850 hover:shadow-lg hover:border-gold/20 transition-all duration-300 flex items-center gap-5';
+                "group bg-white  rounded-2xl p-6 shadow-md border border-slate-100  hover:shadow-lg hover:border-gold/20 transition-all duration-300 flex items-center gap-5";
 
               return (
                 <motion.div key={i} variants={fadeUp} custom={i}>
                   {card.href ? (
                     <a
                       href={card.href}
-                      target={card.external ? '_blank' : undefined}
-                      rel={
-                        card.external ? 'noopener noreferrer' : undefined
-                      }
+                      target={card.external ? "_blank" : undefined}
+                      rel={card.external ? "noopener noreferrer" : undefined}
                       className={cls}
                       aria-label={card.title}
                     >
@@ -455,13 +456,13 @@ export default function Contact() {
             <motion.div
               variants={fadeUp}
               custom={contactCards.length}
-              className="mt-2 bg-prussian-blue/5 dark:bg-prussian-blue/10 rounded-2xl p-6 border border-prussian-blue/10 dark:border-slate-800 text-center"
+              className="mt-2 bg-prussian-blue/5 rounded-2xl p-6 border border-prussian-blue/10 text-center"
             >
-              <p className="text-sm text-slate-650 dark:text-slate-300">
-                🇩🇪 We've helped{' '}
-                <span className="font-bold text-prussian-blue dark:text-gold">500+</span>{' '}
-                candidates start their journey to Germany.{' '}
-                <span className="font-semibold text-prussian-blue dark:text-gold">
+              <p className="text-sm text-slate-650 ">
+                🇩🇪 We've helped{" "}
+                <span className="font-bold text-prussian-blue ">500+</span>{" "}
+                candidates start their journey to Germany.{" "}
+                <span className="font-semibold text-prussian-blue ">
                   Your story could be next.
                 </span>
               </p>
@@ -471,7 +472,7 @@ export default function Contact() {
       </section>
 
       {/* ───────── 3. FAQ Quick Links ───────── */}
-      <section className="py-24 px-6 md:px-12 bg-white dark:bg-slate-900 transition-colors">
+      <section className="py-24 px-6 md:px-12 bg-white transition-colors">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -483,10 +484,10 @@ export default function Contact() {
             <span className="inline-block py-1 px-3 rounded-full bg-gold/10 text-gold border border-gold/20 font-bold text-xs uppercase tracking-wider mb-4">
               FAQ
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-bold text-slate-900 dark:text-white">
+            <h2 className="text-3xl md:text-4xl font-heading font-bold text-slate-900 ">
               Looking for quick answers?
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-3 max-w-lg mx-auto text-sm">
+            <p className="text-slate-500 mt-3 max-w-lg mx-auto text-sm">
               Check out our most commonly asked questions — or reach out
               directly using the form above.
             </p>
@@ -503,12 +504,12 @@ export default function Contact() {
               <motion.div key={i} variants={fadeUp} custom={i}>
                 <Link
                   to="/#faq"
-                  className="group flex items-center gap-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 hover:border-gold/20 transition-all duration-300"
+                  className="group flex items-center gap-4 bg-slate-50 rounded-2xl p-5 border border-slate-100 hover:border-gold/20 transition-all duration-300"
                 >
                   <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold shrink-0 group-hover:scale-110 transition-transform duration-300">
                     <HelpCircle className="w-5 h-5" />
                   </div>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
+                  <span className="text-sm font-medium text-slate-700 flex-1">
                     {q}
                   </span>
                   <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-gold group-hover:translate-x-1 transition-all duration-300 shrink-0" />
@@ -520,7 +521,7 @@ export default function Contact() {
       </section>
 
       {/* ───────── 4. Map Placeholder ───────── */}
-      <section className="py-24 px-6 md:px-12 bg-slate-50 dark:bg-slate-900/60">
+      <section className="py-24 px-6 md:px-12 bg-slate-50 ">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -529,10 +530,10 @@ export default function Contact() {
             transition={{ duration: 0.5 }}
             className="text-center mb-10"
           >
-            <h2 className="text-3xl md:text-4xl font-heading font-bold text-slate-900 dark:text-white">
+            <h2 className="text-3xl md:text-4xl font-heading font-bold text-slate-900 ">
               Find Us
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-3 text-sm">
+            <p className="text-slate-500 mt-3 text-sm">
               Lagos, Nigeria · Germany
             </p>
           </motion.div>
@@ -542,22 +543,22 @@ export default function Contact() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg h-72 md:h-96"
+            className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-lg h-72 md:h-96"
             style={{
               backgroundImage:
-                'radial-gradient(circle, rgba(0,49,83,0.04) 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-              backgroundColor: '#f8fafc',
+                "radial-gradient(circle, rgba(0,49,83,0.04) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+              backgroundColor: "#f8fafc",
             }}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#f8fafc] dark:bg-slate-900">
-              <div className="w-16 h-16 rounded-full bg-prussian-blue/5 dark:bg-white/5 flex items-center justify-center">
-                <MapPin className="w-7 h-7 text-prussian-blue/40 dark:text-gold/40" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#f8fafc] ">
+              <div className="w-16 h-16 rounded-full bg-prussian-blue/5 flex items-center justify-center">
+                <MapPin className="w-7 h-7 text-prussian-blue/40 " />
               </div>
-              <p className="text-slate-400 dark:text-slate-500 font-semibold text-sm">
+              <p className="text-slate-400 font-semibold text-sm">
                 Map coming soon
               </p>
-              <p className="text-slate-350 dark:text-slate-500 text-xs">
+              <p className="text-slate-350 text-xs">
                 Google Maps integration will appear here
               </p>
             </div>

@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Menu, 
-  X, 
-  ChevronDown, 
-  LayoutDashboard, 
-  ShieldAlert, 
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Menu,
+  X,
+  ChevronDown,
+  LayoutDashboard,
+  ShieldAlert,
   LogOut,
   Globe,
   Compass,
   GraduationCap,
   HelpCircle,
   PhoneCall,
-  Star
-} from 'lucide-react';
-import { auth } from '../firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import Logo from './Logo';
-import { checkIsAdminSync } from '../utils/auth';
+  Star,
+} from "lucide-react";
+import { auth } from "../firebase";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import Logo from "./Logo";
+import { checkIsAdminSync } from "../utils/auth";
 
 interface NavbarProps {
   isAlwaysSolid?: boolean;
@@ -29,7 +29,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,21 +49,24 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener("scroll", handleScroll);
+    document.addEventListener("mousedown", handleClickOutside);
 
     // Initial check for scroll
     handleScroll();
 
     return () => {
       unsubscribe();
-      window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -71,20 +74,23 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
     try {
       await signOut(auth);
       setIsDropdownOpen(false);
-      navigate('/');
+      navigate("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
-    if (targetId.startsWith('#')) {
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    targetId: string,
+  ) => {
+    if (targetId.startsWith("#")) {
       const elementId = targetId.substring(1);
-      if (location.pathname === '/') {
+      if (location.pathname === "/") {
         e.preventDefault();
         const element = document.getElementById(elementId);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
     }
@@ -92,23 +98,23 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
   };
 
   const navLinks = [
-    { label: 'Why Germany', href: '#why-germany', icon: GraduationCap },
-    { label: 'Opportunity Card', href: '/opportunity-card', icon: Compass },
-    { label: 'About', href: '/about', icon: Globe },
-    { label: 'Programs', href: '/programs', icon: LayoutDashboard },
-    { label: 'Success Stories', href: '/success-stories', icon: Star },
-    { label: 'FAQ', href: '#faq', icon: HelpCircle },
-    { label: 'Contact', href: '/contact', icon: PhoneCall }
+    { label: "Why Germany", href: "#why-germany", icon: GraduationCap },
+    { label: "Opportunity Card", href: "/opportunity-card", icon: Compass },
+    { label: "About", href: "/about", icon: Globe },
+    { label: "Programs", href: "/programs", icon: LayoutDashboard },
+    { label: "Success Stories", href: "/success-stories", icon: Star },
+    { label: "FAQ", href: "#faq", icon: HelpCircle },
+    { label: "Contact", href: "/contact", icon: PhoneCall },
   ];
 
   const isSolid = isAlwaysSolid || isScrolled;
 
   return (
-    <nav 
+    <nav
       className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl py-4 px-6 md:px-8 flex justify-between items-center z-50 rounded-2xl transition-all duration-300 ${
-        isSolid 
-          ? 'bg-prussian-blue/95 border border-prussian-blue/20 shadow-lg text-white' 
-          : 'bg-white/10 backdrop-blur-xl border border-white/20 text-white'
+        isSolid
+          ? "bg-prussian-blue/95 border border-prussian-blue/20 shadow-lg text-white"
+          : "bg-white/10 backdrop-blur-xl border border-white/20 text-white"
       }`}
     >
       {/* Brand Logo */}
@@ -119,7 +125,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
         {navLinks.map((link) => (
           <Link
             key={link.label}
-            to={link.href.startsWith('#') ? `/${link.href}` : link.href}
+            to={link.href.startsWith("#") ? `/${link.href}` : link.href}
             onClick={(e) => handleNavClick(e, link.href)}
             className="text-xs xl:text-sm font-semibold text-slate-100 hover:text-gold transition-colors duration-200 whitespace-nowrap"
           >
@@ -127,50 +133,67 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
           </Link>
         ))}
       </div>
-      
+
       {/* Desktop Actions / Auth dropdown */}
       <div className="hidden lg:flex items-center gap-2 xl:gap-4 shrink-0">
         {user ? (
           <div className="relative" ref={dropdownRef}>
-            <button 
+            <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-3 xl:px-4 rounded-full hover:bg-white/20 transition-all shadow-sm group text-xs xl:text-sm"
             >
               <div className="w-7 h-7 xl:w-8 xl:h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30 shrink-0">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img
+                    src={user.photoURL}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
-                  user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'
+                  user.displayName?.charAt(0) || user.email?.charAt(0) || "U"
                 )}
               </div>
-              <span className="max-w-[100px] xl:max-w-[120px] truncate">{user.displayName || 'Account'}</span>
-              <ChevronDown size={16} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <span className="max-w-[100px] xl:max-w-[120px] truncate">
+                {user.displayName || "Account"}
+              </span>
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             <AnimatePresence>
               {isDropdownOpen && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/50 overflow-hidden z-[60]"
                 >
                   <div className="p-4 border-b border-slate-100">
-                    <p className="text-sm font-bold text-prussian-blue truncate">{user.displayName || 'Candidate'}</p>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    <p className="text-sm font-bold text-prussian-blue truncate">
+                      {user.displayName || "Candidate"}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {user.email}
+                    </p>
                   </div>
                   <div className="p-2">
-                    <Link 
-                      to="/dashboard" 
+                    <Link
+                      to="/dashboard"
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
                     >
-                      <LayoutDashboard size={18} className="text-prussian-blue" />
+                      <LayoutDashboard
+                        size={18}
+                        className="text-prussian-blue"
+                      />
                       Go to Dashboard
                     </Link>
                     {checkIsAdminSync(user) && (
-                      <Link 
-                        to="/admin" 
+                      <Link
+                        to="/admin"
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-gold hover:bg-gold/5 rounded-xl transition-colors"
                       >
@@ -178,7 +201,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                         Admin Portal
                       </Link>
                     )}
-                    <button 
+                    <button
                       onClick={handleSignOut}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
@@ -192,10 +215,16 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
           </div>
         ) : (
           <>
-            <Link to="/auth" className="bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-4 xl:px-6 rounded-full hover:bg-white/20 transition-colors shadow-sm text-xs xl:text-sm">
+            <Link
+              to="/auth"
+              className="bg-white/10 backdrop-blur-sm text-white border border-white/20 font-semibold py-2 px-4 xl:px-6 rounded-full hover:bg-white/20 transition-colors shadow-sm text-xs xl:text-sm"
+            >
               Login
             </Link>
-            <Link to="/auth" className="bg-gold text-prussian-blue font-bold py-2 px-4 xl:px-6 rounded-full hover:bg-yellow-400 transition-colors shadow-sm text-xs xl:text-sm">
+            <Link
+              to="/auth"
+              className="bg-gold text-prussian-blue font-bold py-2 px-4 xl:px-6 rounded-full hover:bg-yellow-400 transition-colors shadow-sm text-xs xl:text-sm"
+            >
               Apply Now
             </Link>
           </>
@@ -204,7 +233,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
 
       {/* Mobile / Tablet Controls (< lg) */}
       <div className="flex lg:hidden items-center gap-3">
-        <button 
+        <button
           className="text-white p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold rounded-lg transition-colors cursor-pointer"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-expanded={isMobileMenuOpen}
@@ -218,7 +247,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
       {/* Mobile Dropdown Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div 
+          <motion.div
             id="mobile-menu"
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -234,7 +263,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                 return (
                   <Link
                     key={link.label}
-                    to={link.href.startsWith('#') ? `/${link.href}` : link.href}
+                    to={link.href.startsWith("#") ? `/${link.href}` : link.href}
                     onClick={(e) => handleNavClick(e, link.href)}
                     className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
                     role="menuitem"
@@ -247,7 +276,7 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
             </div>
 
             {user ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
@@ -256,39 +285,77 @@ export default function Navbar({ isAlwaysSolid = false }: NavbarProps) {
                 <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
                   <div className="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center text-gold font-bold overflow-hidden border border-gold/30 shrink-0">
                     {user.photoURL ? (
-                      <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img
+                        src={user.photoURL}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
-                      user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'
+                      user.displayName?.charAt(0) ||
+                      user.email?.charAt(0) ||
+                      "U"
                     )}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="text-white font-bold truncate">{user.displayName || 'Candidate'}</p>
-                    <p className="text-slate-400 text-xs truncate">{user.email}</p>
+                    <p className="text-white font-bold truncate">
+                      {user.displayName || "Candidate"}
+                    </p>
+                    <p className="text-slate-400 text-xs truncate">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
-                <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all">
+                <Link
+                  to="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  role="menuitem"
+                  className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all"
+                >
                   Dashboard
                 </Link>
-                 {checkIsAdminSync(user) && (
-                  <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all">
+                {checkIsAdminSync(user) && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    role="menuitem"
+                    className="w-full text-center bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all"
+                  >
                     Admin Portal
                   </Link>
                 )}
-                <button onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }} role="menuitem" className="w-full text-center bg-red-500/10 text-red-400 border border-red-500/20 font-semibold py-3 px-6 rounded-xl hover:bg-red-500/20 focus:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all">
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  className="w-full text-center bg-red-500/10 text-red-400 border border-red-500/20 font-semibold py-3 px-6 rounded-xl hover:bg-red-500/20 focus:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                >
                   Sign Out
                 </button>
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
                 className="flex flex-col gap-4"
               >
-                <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all">
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  role="menuitem"
+                  className="w-full text-center bg-white/10 text-white border border-white/20 font-semibold py-3 px-6 rounded-xl hover:bg-white/20 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-gold transition-all"
+                >
                   Login
                 </Link>
-                <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} role="menuitem" className="w-full text-center bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all">
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  role="menuitem"
+                  className="w-full text-center bg-gold text-prussian-blue font-bold py-3 px-6 rounded-xl hover:bg-yellow-400 focus:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white transition-all"
+                >
                   Apply Now
                 </Link>
               </motion.div>

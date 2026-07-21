@@ -1,19 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
-import Admin from './pages/Admin';
-import VerifyEmail from './pages/VerifyEmail';
-import OpportunityCard from './pages/OpportunityCard';
-import SuccessStories from './pages/SuccessStories';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Programs from './pages/Programs';
-import TermsOfService from './pages/TermsOfService';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import ResetPassword from './pages/ResetPassword';
-import { ToastProvider } from './components/Toast';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Landing from "./pages/Landing";
+import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
+import VerifyEmail from "./pages/VerifyEmail";
+import OpportunityCard from "./pages/OpportunityCard";
+import SuccessStories from "./pages/SuccessStories";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Programs from "./pages/Programs";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ResetPassword from "./pages/ResetPassword";
+import { ToastProvider } from "./components/Toast";
 
 export default function App() {
   return (

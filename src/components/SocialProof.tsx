@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Users, GraduationCap, FileCheck, Star } from 'lucide-react';
+import React, { useEffect, useState, useRef } from "react";
+import { Users, GraduationCap, FileCheck, Star } from "lucide-react";
 
 interface CounterProps {
   value: number;
@@ -9,7 +9,13 @@ interface CounterProps {
   decimals?: number;
 }
 
-function Counter({ value, duration = 1500, prefix = '', suffix = '', decimals = 0 }: CounterProps) {
+function Counter({
+  value,
+  duration = 1500,
+  prefix = "",
+  suffix = "",
+  decimals = 0,
+}: CounterProps) {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const elementRef = useRef<HTMLSpanElement>(null);
@@ -21,7 +27,7 @@ function Counter({ value, duration = 1500, prefix = '', suffix = '', decimals = 
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (elementRef.current) {
@@ -68,10 +74,36 @@ function Counter({ value, duration = 1500, prefix = '', suffix = '', decimals = 
 
 export default function SocialProof() {
   const stats = [
-    { label: 'Students Placed', value: 500, suffix: '+', icon: Users, color: 'text-gold' },
-    { label: 'German Universities', value: 40, suffix: '+', icon: GraduationCap, color: 'text-blue-400' },
-    { label: 'Visa Success Rate', value: 98, suffix: '%', icon: FileCheck, color: 'text-emerald-400' },
-    { label: 'Candidate Rating', value: 4.9, prefix: '★ ', suffix: '', decimals: 1, icon: Star, color: 'text-yellow-400' },
+    {
+      label: "Students Placed",
+      value: 500,
+      suffix: "+",
+      icon: Users,
+      color: "text-gold",
+    },
+    {
+      label: "German Universities",
+      value: 40,
+      suffix: "+",
+      icon: GraduationCap,
+      color: "text-blue-400",
+    },
+    {
+      label: "Visa Success Rate",
+      value: 98,
+      suffix: "%",
+      icon: FileCheck,
+      color: "text-emerald-400",
+    },
+    {
+      label: "Candidate Rating",
+      value: 4.9,
+      prefix: "★ ",
+      suffix: "",
+      decimals: 1,
+      icon: Star,
+      color: "text-yellow-400",
+    },
   ];
 
   return (
@@ -85,11 +117,11 @@ export default function SocialProof() {
                 <Icon size={24} className={stat.color} />
               </div>
               <div className="font-heading font-extrabold text-3xl md:text-4xl text-white mb-2">
-                <Counter 
-                  value={stat.value} 
-                  suffix={stat.suffix} 
-                  prefix={stat.prefix} 
-                  decimals={stat.decimals} 
+                <Counter
+                  value={stat.value}
+                  suffix={stat.suffix}
+                  prefix={stat.prefix}
+                  decimals={stat.decimals}
                 />
               </div>
               <div className="text-xs md:text-sm text-slate-400 font-semibold tracking-wider uppercase">
