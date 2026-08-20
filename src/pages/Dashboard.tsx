@@ -39,6 +39,7 @@ import {
   collection,
   addDoc,
   updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useToast } from "../components/Toast";
@@ -66,12 +67,15 @@ export default function Dashboard() {
     {},
   );
   const [docStatuses, setDocStatuses] = useState<
-    Record<string, "missing" | "pending" | "verified">
+    Record<string, "missing" | "pending" | "verified" | "action_required">
   >({
     waec: "missing",
     transcript: "missing",
     passport: "missing",
   });
+  const [userDocs, setUserDocs] = useState<
+    Record<string, { status?: string; feedback?: string; url?: string; uploadedAt?: string }>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Loading & Error State for Firestore data fetch
@@ -99,7 +103,7 @@ export default function Dashboard() {
   const isAcademicComplete =
     isHighSchool || (!!cgpa && parseFloat(cgpa) >= 1.0 && germanGrade !== null);
   const hasUploadedDoc = Object.values(docStatuses).some(
-    (status) => status === "pending" || status === "verified",
+    (status) => status === "pending" || status === "verified" || status === "action_required",
   );
   const isReadyToSubmit = isAcademicComplete && hasUploadedDoc;
   const isAlreadySubmitted = ["submitted", "reviewing", "approved"].includes(
@@ -251,6 +255,7 @@ export default function Dashboard() {
       }
 
       if (docData) {
+        setUserDocs(docData as any);
         setDocStatuses((prev) => ({
           ...prev,
           waec: (docData as any).waec?.status || "missing",
@@ -304,6 +309,8 @@ export default function Dashboard() {
       );
     }
 
+    let unsubscribeSnapshot: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         if (!currentUser.emailVerified) {
@@ -324,11 +331,34 @@ export default function Dashboard() {
         // Load user data from Firestore with retry logic
         await loadUserData(currentUser);
         setIsLoading(false);
+
+        // Establish real-time Firestore listener for live admin approval & feedback updates
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+        unsubscribeSnapshot = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.status) setAppStatus(data.status);
+            if (data.documents) {
+              setUserDocs(data.documents);
+              setDocStatuses((prev) => ({
+                ...prev,
+                waec: data.documents.waec?.status || "missing",
+                transcript: data.documents.transcript?.status || "missing",
+                passport: data.documents.passport?.status || "missing",
+              }));
+            }
+          }
+        });
       } else {
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
         navigate("/auth");
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
   }, [navigate]);
 
   const handleCgpaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -507,6 +537,7 @@ export default function Dashboard() {
                 [docId]: {
                   url: downloadURL,
                   status: "pending",
+                  feedback: "",
                   uploadedAt: new Date().toISOString(),
                 },
               },
@@ -514,6 +545,15 @@ export default function Dashboard() {
             { merge: true },
           );
 
+          setUserDocs((prev) => ({
+            ...prev,
+            [docId]: {
+              url: downloadURL,
+              status: "pending",
+              feedback: "",
+              uploadedAt: new Date().toISOString(),
+            },
+          }));
           setDocStatuses((prev) => ({ ...prev, [docId]: "pending" }));
           toast.success(`${docId.toUpperCase()} uploaded successfully!`);
         } catch (dbErr) {
@@ -720,6 +760,13 @@ export default function Dashboard() {
           bg: "bg-yellow-50 ",
           border: "border-yellow-200 ",
           label: "Pending Review",
+        };
+      case "action_required":
+        return {
+          color: "text-rose-600 ",
+          bg: "bg-rose-50 ",
+          border: "border-rose-200 ",
+          label: "Re-upload Required",
         };
       default:
         return {
@@ -1306,78 +1353,101 @@ export default function Dashboard() {
                       const config = getStatusConfig(status);
                       const isUploading = uploadingDoc === docItem.id;
                       const progress = uploadProgress[docItem.id] || 0;
+                      const docInfo = userDocs[docItem.id];
 
                       return (
-                        <motion.div
-                          key={docItem.id}
-                          whileHover={{ y: -2 }}
-                          onDragOver={(e) => handleDragOver(e, docItem.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, docItem.id)}
-                          className={`rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md relative overflow-hidden ${
-                            dragActiveId === docItem.id
-                              ? "border-gold border-dashed bg-gold/5 scale-[1.01] "
-                              : "bg-white border-slate-100 "
-                          }`}
-                        >
-                          {isUploading && (
-                            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-100 z-20">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                className="h-full bg-prussian-blue shadow-[0_0_10px_rgba(0,49,83,0.3)]"
-                              />
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-4 relative z-10">
-                            <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${config.bg} ${config.color}`}
-                            >
-                              <docItem.icon size={24} />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-prussian-blue ">
-                                {docItem.name}
-                              </h3>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span
-                                  className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md border ${config.bg} ${config.color} ${config.border}`}
-                                >
-                                  {config.label}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="hidden lg:block text-xs text-slate-400 font-medium relative z-10">
-                            {dragActiveId === docItem.id
-                              ? "Drop file here"
-                              : "Drag & drop PDF/JPG here"}
-                          </div>
-
-                          <button
-                            onClick={() => handleUploadClick(docItem.id)}
-                            disabled={status === "verified" || isUploading}
-                            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors relative z-10 cursor-pointer ${
-                              status === "verified"
-                                ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                                : isUploading
-                                  ? "bg-blue-50 text-prussian-blue cursor-wait"
-                                  : "bg-prussian-blue text-white hover:bg-prussian-blue/90 "
+                        <div key={docItem.id} className="space-y-2">
+                          <motion.div
+                            whileHover={{ y: -2 }}
+                            onDragOver={(e) => handleDragOver(e, docItem.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, docItem.id)}
+                            className={`rounded-2xl p-5 shadow-sm border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:shadow-md relative overflow-hidden ${
+                              dragActiveId === docItem.id
+                                ? "border-gold border-dashed bg-gold/5 scale-[1.01] "
+                                : status === "action_required"
+                                  ? "bg-rose-50/30 border-rose-200 "
+                                  : "bg-white border-slate-100 "
                             }`}
                           >
-                            {status === "verified" ? (
-                              "Uploaded"
-                            ) : isUploading ? (
-                              `Uploading ${Math.round(progress)}%`
-                            ) : (
-                              <>
-                                <UploadCloud size={16} /> Upload
-                              </>
+                            {isUploading && (
+                              <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-100 z-20">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress}%` }}
+                                  className="h-full bg-prussian-blue shadow-[0_0_10px_rgba(0,49,83,0.3)]"
+                                />
+                              </div>
                             )}
-                          </button>
-                        </motion.div>
+
+                            <div className="flex items-center gap-4 relative z-10">
+                              <div
+                                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${config.bg} ${config.color}`}
+                              >
+                                <docItem.icon size={24} />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-prussian-blue ">
+                                  {docItem.name}
+                                </h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md border ${config.bg} ${config.color} ${config.border}`}
+                                  >
+                                    {config.label}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="hidden lg:block text-xs text-slate-400 font-medium relative z-10">
+                              {dragActiveId === docItem.id
+                                ? "Drop file here"
+                                : "Drag & drop PDF/JPG here"}
+                            </div>
+
+                            <button
+                              onClick={() => handleUploadClick(docItem.id)}
+                              disabled={status === "verified" || isUploading}
+                              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors relative z-10 cursor-pointer ${
+                                status === "verified"
+                                  ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+                                  : isUploading
+                                    ? "bg-blue-50 text-prussian-blue cursor-wait"
+                                    : status === "action_required"
+                                      ? "bg-rose-600 text-white hover:bg-rose-700 shadow-sm"
+                                      : "bg-prussian-blue text-white hover:bg-prussian-blue/90 "
+                              }`}
+                            >
+                              {status === "verified" ? (
+                                "Uploaded"
+                              ) : isUploading ? (
+                                `Uploading ${Math.round(progress)}%`
+                              ) : status === "action_required" ? (
+                                <>
+                                  <UploadCloud size={16} /> Re-upload
+                                </>
+                              ) : (
+                                <>
+                                  <UploadCloud size={16} /> Upload
+                                </>
+                              )}
+                            </button>
+                          </motion.div>
+
+                          {/* Admin Feedback Callout */}
+                          {status === "action_required" && docInfo?.feedback && (
+                            <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 flex items-start gap-3 shadow-2xs">
+                              <AlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-bold uppercase tracking-wider text-[10px] text-rose-700 block mb-0.5">
+                                  Action Required & Feedback:
+                                </span>
+                                <p className="font-medium leading-relaxed">{docInfo.feedback}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

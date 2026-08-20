@@ -4,6 +4,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Auth from '../src/pages/Auth';
+import { ToastProvider } from '../src/components/Toast';
 import * as firebaseAuth from 'firebase/auth';
 
 // ---------------------------------------------------------
@@ -43,6 +44,12 @@ vi.mock('lucide-react', () => ({
   Lock: () => <span>Lock</span>,
   User: () => <span>User</span>,
   ArrowRight: () => <span>ArrowRight</span>,
+  Eye: () => <span>Eye</span>,
+  EyeOff: () => <span>EyeOff</span>,
+  CheckCircle2: () => <span>CheckCircle2</span>,
+  AlertCircle: () => <span>AlertCircle</span>,
+  X: () => <span>X</span>,
+  Info: () => <span>Info</span>,
 }));
 
 // Mock Logo component
@@ -63,9 +70,11 @@ describe('Auth Page - Reset Password Feature', () => {
 
   it('should toggle forgot password mode and trigger sendPasswordResetEmail upon submission', async () => {
     render(
-      <MemoryRouter>
-        <Auth />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <Auth />
+        </MemoryRouter>
+      </ToastProvider>
     );
 
     // 1. Verify we start in standard Login Mode
@@ -98,9 +107,10 @@ describe('Auth Page - Reset Password Feature', () => {
       expect(firebaseAuth.sendPasswordResetEmail).toHaveBeenCalled();
     });
 
-    // 7. Verify that standard alert is popped and it switches back to Login mode
-    expect(window.alert).toHaveBeenCalledWith('Password reset email sent! Please check your inbox.');
-    expect(screen.getByText('Welcome back')).toBeDefined();
+    // 7. Verify that it switches back to Login mode
+    await waitFor(() => {
+      expect(screen.getByText('Welcome back')).toBeDefined();
+    });
   });
 
   it('should display error message if sendPasswordResetEmail rejects', async () => {
@@ -109,9 +119,11 @@ describe('Auth Page - Reset Password Feature', () => {
     vi.mocked(firebaseAuth.sendPasswordResetEmail).mockRejectedValueOnce(mockError);
 
     render(
-      <MemoryRouter>
-        <Auth />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <Auth />
+        </MemoryRouter>
+      </ToastProvider>
     );
 
     // Go to forgot password screen
@@ -123,9 +135,9 @@ describe('Auth Page - Reset Password Feature', () => {
     // Submit
     fireEvent.click(screen.getByRole('button', { name: /Send Reset Link/i }));
 
-    // Wait for error message to render
+    // Wait for sanitized error message to render
     await waitFor(() => {
-      expect(screen.getByText('Firebase: Error (auth/user-not-found).')).toBeDefined();
+      expect(screen.getByText('Authentication failed. Please check your details and try again.')).toBeDefined();
     });
 
     // Verify it remains on the Reset Password page

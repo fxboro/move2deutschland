@@ -151,7 +151,7 @@ require.cache[functionsPath] = {
 // 4. Import Cloud Functions under test
 // ---------------------------------------------------------
 // Note: We use relative require here to load functions index
-const indexExports = require('./src/index');
+const indexExports = require(path.resolve(__dirname, 'lib/index'));
 const onUserSignup = indexExports.onUserSignup;
 const sendVerificationNudge = indexExports.sendVerificationNudge;
 
