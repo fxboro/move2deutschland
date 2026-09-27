@@ -53,12 +53,12 @@ export const onUserSignup = functions.auth.user().onCreate(async (user) => {
     return;
   }
 
-  // Assign Admin claim if signing up with the designated admin email
-  const ADMIN_EMAILS = [ADMIN_EMAIL];
-  if (ADMIN_EMAILS.includes(email)) {
+  // Assign Admin & Super Admin claim if signing up with the designated admin email
+  const ADMIN_EMAILS = [ADMIN_EMAIL, 'admin@move2deutschland.com'];
+  if (ADMIN_EMAILS.includes(email.toLowerCase())) {
     try {
-      await admin.auth().setCustomUserClaims(user.uid, { admin: true });
-      console.log(`Successfully assigned admin custom claim to: ${email}`);
+      await admin.auth().setCustomUserClaims(user.uid, { admin: true, role: 'super_admin' });
+      console.log(`Successfully assigned super_admin custom claim to: ${email}`);
     } catch (error) {
       console.error(`Error setting admin custom claim for ${email}:`, error);
     }
@@ -355,4 +355,65 @@ export const onContactSubmissionCreated = functions.firestore
     console.log(`Admin alert email queued for contact submission from ${email}`);
     return null;
   });
+
+/**
+ * Task 6: Super Admin Staff Role Management (RBAC)
+ * Allows a super_admin to grant or revoke staff roles (super_admin, counselor, document_verifier)
+ */
+export const setUserRole = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Authentication required.');
+  }
+
+  const callerEmail = (context.auth.token.email || '').toLowerCase();
+  const callerRole = context.auth.token.role;
+  const isCallerSuperAdmin =
+    callerRole === 'super_admin' ||
+    context.auth.token.admin === true ||
+    callerEmail === ADMIN_EMAIL.toLowerCase() ||
+    callerEmail === 'admin@move2deutschland.com';
+
+  if (!isCallerSuperAdmin) {
+    throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can manage staff roles.');
+  }
+
+  const { targetUid, role } = data;
+  if (!targetUid || typeof targetUid !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing or invalid target UID.');
+  }
+
+  const validRoles = ['super_admin', 'counselor', 'document_verifier', 'user'];
+  if (!role || !validRoles.includes(role)) {
+    throw new functions.https.HttpsError('invalid-argument', `Invalid role. Must be one of: ${validRoles.join(', ')}`);
+  }
+
+  try {
+    const claims = role === 'user'
+      ? { admin: false, role: null }
+      : { admin: true, role };
+
+    await admin.auth().setCustomUserClaims(targetUid, claims);
+
+    // Update user document role field
+    await db.collection('users').doc(targetUid).set({
+      role,
+      roleAssignedAt: admin.firestore.FieldValue.serverTimestamp(),
+      roleAssignedBy: callerEmail,
+    }, { merge: true });
+
+    // Append to audit logs
+    await db.collection('auditLogs').add({
+      action: 'ROLE_ASSIGNED',
+      targetUid,
+      role,
+      assignedBy: callerEmail,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true, message: `Successfully updated user role to: ${role}` };
+  } catch (error: any) {
+    console.error('Error assigning custom claim role:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'Failed to assign role.');
+  }
+});
 

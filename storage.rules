@@ -2,13 +2,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Helper functions
+    // Helper functions & RBAC
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    function isAdmin() {
-      return isAuthenticated() && (request.auth.token.admin == true || request.auth.token.email == 'chimadayo43@gmail.com');
+    function isStaff() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.role == 'counselor' ||
+        request.auth.token.role == 'document_verifier' ||
+        request.auth.token.admin == true ||
+        request.auth.token.email == 'chimadayo43@gmail.com' ||
+        request.auth.token.email == 'admin@move2deutschland.com'
+      );
     }
     
     function isOwner(userId) {
@@ -16,15 +23,14 @@ service firebase.storage {
     }
 
     match /users/{userId}/documents/{fileName} {
-      // Allow read if the user is the owner or admin.
-      allow read: if isOwner(userId) || isAdmin();
+      // Allow read if the user is the owner or staff (super_admin, counselor, verifier).
+      allow read: if isOwner(userId) || isStaff();
       
-      // Allow write if the user is the owner (with valid size/type) or admin.
+      // Allow write if the user is the owner (with valid size/type) or staff.
       allow write: if (isOwner(userId) 
                        && request.resource.size < 10 * 1024 * 1024
                        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('application/.*')))
-                   || isAdmin();
+                   || isStaff();
     }
   }
 }
-

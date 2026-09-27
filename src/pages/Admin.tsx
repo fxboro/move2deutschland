@@ -12,8 +12,25 @@ import { db, auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import Logo from "../components/Logo";
-import { checkIsAdmin } from "../utils/auth";
+import { checkIsAdmin, getUserRole, AdminRole, hasPermission } from "../utils/auth";
 import { useToast } from "../components/Toast";
+import NotificationCenter from "../components/admin/NotificationCenter";
+import InquiriesTab from "../components/admin/InquiriesTab";
+import TestimonialsTab from "../components/admin/TestimonialsTab";
+import StaffRbacTab from "../components/admin/StaffRbacTab";
+import ApplicationsTab from "../components/admin/ApplicationsTab";
+import {
+  subscribeToApplications,
+  subscribeToContactSubmissions,
+  subscribeToTestimonials,
+  subscribeToAuditLogs,
+  subscribeToAdminNotifications,
+  ApplicationItem,
+  ContactSubmissionItem,
+  TestimonialItem,
+  AuditLogItem,
+  AdminNotification,
+} from "../services/adminService";
 import {
   CheckCircle,
   Clock,
@@ -38,6 +55,9 @@ import {
   Mail,
   Check,
   RotateCcw,
+  ShieldCheck,
+  Star,
+  Shield,
 } from "lucide-react";
 
 export default function Admin() {
@@ -45,9 +65,17 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<AdminRole>("user");
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [inquiries, setInquiries] = useState<ContactSubmissionItem[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [filterPriority, setFilterPriority] = useState("All");
   const [filterCourse, setFilterCourse] = useState("All");
-  const [activeTab, setActiveTab] = useState("applicants"); // 'applicants' | 'overview'
+  const [activeTab, setActiveTab] = useState<
+    "applicants" | "applications" | "inquiries" | "testimonials" | "staff" | "overview"
+  >("applicants");
   const [archivedFilter, setArchivedFilter] = useState<"active" | "archived">("active");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
@@ -119,7 +147,29 @@ export default function Admin() {
     }
 
     let isMounted = true;
-    let unsubscribeSnapshot: (() => void) | null = null;
+    const unsubscribers: Array<() => void> = [];
+
+    const playNotificationChime = () => {
+      if (localStorage.getItem("m2d_admin_sound") === "false") return;
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {
+        // Audio autoplay restriction fallback
+      }
+    };
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (!isMounted) return;
@@ -135,14 +185,15 @@ export default function Admin() {
             setIsAdmin(true);
             setLoading(true);
 
-            // Clean up previous snapshot listener if re-authenticating
-            if (unsubscribeSnapshot) {
-              unsubscribeSnapshot();
-              unsubscribeSnapshot = null;
-            }
+            const role = await getUserRole(user);
+            if (isMounted) setUserRole(role);
 
-            // Establish real-time Firestore listener
-            unsubscribeSnapshot = onSnapshot(
+            // Clean up previous snapshot listeners
+            unsubscribers.forEach((fn) => fn());
+            unsubscribers.length = 0;
+
+            // 1. Establish real-time Firestore listener for Users
+            const unsubUsers = onSnapshot(
               collection(db, "users"),
               (snapshot) => {
                 if (!isMounted) return;
@@ -155,11 +206,51 @@ export default function Admin() {
               },
               (error) => {
                 if (!isMounted) return;
-                console.error("Real-time listener error:", error);
+                console.error("Real-time users listener error:", error);
                 toast.error(`Live sync error: ${error.message || "Missing permissions"}`);
                 setLoading(false);
               }
             );
+            unsubscribers.push(unsubUsers);
+
+            // 2. Real-time Applications Sync
+            unsubscribers.push(
+              subscribeToApplications((apps) => {
+                if (isMounted) setApplications(apps);
+              })
+            );
+
+            // 3. Real-time Contact Submissions Sync
+            unsubscribers.push(
+              subscribeToContactSubmissions((inqs) => {
+                if (isMounted) setInquiries(inqs);
+              })
+            );
+
+            // 4. Real-time Testimonials Sync
+            unsubscribers.push(
+              subscribeToTestimonials((tests) => {
+                if (isMounted) setTestimonials(tests);
+              })
+            );
+
+            // 5. Real-time Audit Logs Sync
+            unsubscribers.push(
+              subscribeToAuditLogs((logs) => {
+                if (isMounted) setAuditLogs(logs);
+              })
+            );
+
+            // 6. Real-time Document Mutation & Notification Feed
+            unsubscribers.push(
+              subscribeToAdminNotifications((notif) => {
+                if (!isMounted) return;
+                setNotifications((prev) => [notif, ...prev]);
+                playNotificationChime();
+                toast.info(`${notif.title}: ${notif.message}`);
+              })
+            );
+
             return;
           }
         } catch (authErr) {
@@ -175,9 +266,7 @@ export default function Admin() {
     return () => {
       isMounted = false;
       unsubscribeAuth();
-      if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-      }
+      unsubscribers.forEach((fn) => fn());
     };
   }, [navigate]);
 
@@ -578,20 +667,105 @@ export default function Admin() {
             </span>
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1.5">
             <button
               onClick={() => setActiveTab("applicants")}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === "applicants" ? "bg-gold text-prussian-blue font-bold shadow-md" : "text-slate-300 hover:bg-white/5"}`}
+              className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                activeTab === "applicants"
+                  ? "bg-gold text-prussian-blue font-bold shadow-md"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
             >
-              <Users size={20} />
-              Candidates
+              <div className="flex items-center gap-3">
+                <Users size={18} />
+                <span>Candidates</span>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-semibold">
+                {stats.total}
+              </span>
             </button>
+
+            <button
+              onClick={() => setActiveTab("applications")}
+              className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                activeTab === "applications"
+                  ? "bg-gold text-prussian-blue font-bold shadow-md"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FileText size={18} />
+                <span>Applications</span>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-semibold">
+                {applications.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("inquiries")}
+              className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                activeTab === "inquiries"
+                  ? "bg-gold text-prussian-blue font-bold shadow-md"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare size={18} />
+                <span>Inquiries</span>
+              </div>
+              {inquiries.filter((i) => i.status === "new").length > 0 ? (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-bold animate-pulse">
+                  {inquiries.filter((i) => i.status === "new").length}
+                </span>
+              ) : (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-semibold">
+                  {inquiries.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("testimonials")}
+              className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                activeTab === "testimonials"
+                  ? "bg-gold text-prussian-blue font-bold shadow-md"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Star size={18} />
+                <span>Testimonials</span>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-semibold">
+                {testimonials.length}
+              </span>
+            </button>
+
+            {(userRole === "super_admin" || auth.currentUser?.email === "chimadayo43@gmail.com") && (
+              <button
+                onClick={() => setActiveTab("staff")}
+                className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                  activeTab === "staff"
+                    ? "bg-gold text-prussian-blue font-bold shadow-md"
+                    : "text-slate-300 hover:bg-white/5"
+                }`}
+              >
+                <ShieldCheck size={18} />
+                <span>Staff & Roles</span>
+              </button>
+            )}
+
             <button
               onClick={() => setActiveTab("overview")}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === "overview" ? "bg-gold text-prussian-blue font-bold shadow-md" : "text-slate-300 hover:bg-white/5"}`}
+              className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl font-medium transition-colors text-sm ${
+                activeTab === "overview"
+                  ? "bg-gold text-prussian-blue font-bold shadow-md"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
             >
-              <LayoutDashboard size={20} />
-              Overview Stats
+              <LayoutDashboard size={18} />
+              <span>Overview Stats</span>
             </button>
           </nav>
         </div>
@@ -621,20 +795,51 @@ export default function Admin() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
             <div>
               <h1 className="font-heading text-3xl font-bold text-prussian-blue flex items-center gap-3">
-                {activeTab === "applicants"
-                  ? "Candidate Control Pipeline"
-                  : "Platform Overview"}
+                {activeTab === "applicants" && "Candidate Control Pipeline"}
+                {activeTab === "applications" && "Placement Applications"}
+                {activeTab === "inquiries" && "Public Inquiries & Leads"}
+                {activeTab === "testimonials" && "Student Success Stories"}
+                {activeTab === "staff" && "Staff Roles & Access Control"}
+                {activeTab === "overview" && "Platform Overview & Analytics"}
                 <span className="flex items-center gap-1.5 text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold border border-emerald-200 shadow-sm animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Live Firestore Sync
                 </span>
               </h1>
               <p className="text-slate-500 mt-1">
-                {activeTab === "applicants"
-                  ? "Manage, verify, edit, and communicate with Nigerian candidates in real-time."
-                  : "Global metrics and conversion analytics across candidate applications."}
+                {activeTab === "applicants" && "Manage, verify, edit, and communicate with Nigerian candidates in real-time."}
+                {activeTab === "applications" && "Track, evaluate, and approve admissions and scholarship placement files."}
+                {activeTab === "inquiries" && "Triage incoming contact requests and schedule consultation calls."}
+                {activeTab === "testimonials" && "Curate and publish student relocation journeys to the landing page."}
+                {activeTab === "staff" && "Manage administrative permissions, assign roles, and audit security events."}
+                {activeTab === "overview" && "Global metrics and conversion analytics across all collections."}
               </p>
             </div>
-            <div className="flex gap-3">
+
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Staff Role Pill */}
+              <div className="flex items-center space-x-1.5 bg-slate-900 text-gold px-3 py-2 rounded-xl text-xs font-bold border border-gold/30 shadow-sm">
+                <Shield size={14} className="text-gold" />
+                <span className="capitalize">{userRole.replace("_", " ")}</span>
+              </div>
+
+              {/* Real-time Notification Center */}
+              <NotificationCenter
+                notifications={notifications}
+                onMarkAsRead={(id) =>
+                  setNotifications((prev) =>
+                    prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+                  )
+                }
+                onMarkAllAsRead={() =>
+                  setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+                }
+                onClearAll={() => setNotifications([])}
+                onNavigateTab={(tab, targetId) => {
+                  if (tab === "candidates") setActiveTab("applicants");
+                  else setActiveTab(tab as any);
+                }}
+              />
+
               <button
                 onClick={fetchUsers}
                 className="bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 text-prussian-blue font-bold hover:bg-white transition-all flex items-center gap-2 text-sm"
@@ -1099,24 +1304,113 @@ export default function Admin() {
             </>
           )}
 
+          {activeTab === "applications" && (
+            <ApplicationsTab applications={applications} userRole={userRole} />
+          )}
+
+          {activeTab === "inquiries" && (
+            <InquiriesTab inquiries={inquiries} userRole={userRole} />
+          )}
+
+          {activeTab === "testimonials" && (
+            <TestimonialsTab testimonials={testimonials} userRole={userRole} />
+          )}
+
+          {activeTab === "staff" && (
+            <StaffRbacTab
+              users={users}
+              auditLogs={auditLogs}
+              currentSuperAdminEmail={auth.currentUser?.email || ""}
+            />
+          )}
+
           {activeTab === "overview" && (
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-sm border border-white/60">
-              <h2 className="text-xl font-bold text-prussian-blue mb-4">Pipeline Analytics Summary</h2>
-              <p className="text-sm text-slate-600 mb-6">Real-time candidate metrics generated from live Firestore state.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-sm border border-white/60 space-y-8">
+              <div>
+                <h2 className="text-xl font-bold text-prussian-blue mb-1">Multi-Collection Analytics Summary</h2>
+                <p className="text-sm text-slate-600">Cross-collection metrics synchronized in real time across the platform.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                  <h3 className="font-bold text-slate-700 text-sm mb-2">Total Candidates Registered</h3>
-                  <div className="text-4xl font-extrabold text-prussian-blue">{users.length}</div>
+                  <h3 className="font-bold text-slate-700 text-xs mb-1 uppercase tracking-wider">Registered Candidates</h3>
+                  <div className="text-3xl font-extrabold text-prussian-blue">{users.length}</div>
+                  <div className="text-[11px] text-slate-500 mt-1">{stats.pending} pending initial review</div>
                 </div>
-                <div className="p-6 bg-amber-50/50 rounded-2xl border border-amber-200">
-                  <h3 className="font-bold text-amber-900 text-sm mb-2">High Priority Conversion Rate</h3>
-                  <div className="text-4xl font-extrabold text-amber-600">
-                    {users.length ? Math.round((stats.highPriority / users.length) * 100) : 0}%
+
+                <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-200">
+                  <h3 className="font-bold text-blue-900 text-xs mb-1 uppercase tracking-wider">Placement Applications</h3>
+                  <div className="text-3xl font-extrabold text-blue-700">{applications.length}</div>
+                  <div className="text-[11px] text-blue-600 mt-1">
+                    {applications.filter((a) => a.status === "approved").length} placed in universities
                   </div>
                 </div>
+
+                <div className="p-6 bg-amber-50/50 rounded-2xl border border-amber-200">
+                  <h3 className="font-bold text-amber-900 text-xs mb-1 uppercase tracking-wider">Inquiries & Leads</h3>
+                  <div className="text-3xl font-extrabold text-amber-600">{inquiries.length}</div>
+                  <div className="text-[11px] text-amber-700 mt-1">
+                    {inquiries.filter((i) => i.status === "new").length} unhandled leads
+                  </div>
+                </div>
+
                 <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-200">
-                  <h3 className="font-bold text-emerald-900 text-sm mb-2">Documents Verified Total</h3>
-                  <div className="text-4xl font-extrabold text-emerald-600">{stats.verifiedDocs}</div>
+                  <h3 className="font-bold text-emerald-900 text-xs mb-1 uppercase tracking-wider">Live Success Stories</h3>
+                  <div className="text-3xl font-extrabold text-emerald-600">{testimonials.filter((t) => t.approved).length}</div>
+                  <div className="text-[11px] text-emerald-700 mt-1">{testimonials.length} total submitted</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <h4 className="font-bold text-slate-800 text-sm mb-3">Academic Excellence Funnel</h4>
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <div className="flex justify-between font-semibold mb-1">
+                        <span>High Priority Conversion</span>
+                        <span>{users.length ? Math.round((stats.highPriority / users.length) * 100) : 0}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-amber-500 h-full rounded-full"
+                          style={{ width: `${users.length ? Math.round((stats.highPriority / users.length) * 100) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between font-semibold mb-1">
+                        <span>Document Verification Rate</span>
+                        <span>{users.length ? Math.min(100, Math.round((stats.verifiedDocs / (users.length * 2 || 1)) * 100)) : 0}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full"
+                          style={{ width: `${users.length ? Math.min(100, Math.round((stats.verifiedDocs / (users.length * 2 || 1)) * 100)) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <h4 className="font-bold text-slate-800 text-sm mb-3">Staff & Security Activity</h4>
+                  <div className="space-y-2 text-xs text-slate-600">
+                    <p className="flex justify-between">
+                      <span>Total Audit Log Entries:</span>
+                      <span className="font-bold text-slate-900">{auditLogs.length}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Administrative Staff:</span>
+                      <span className="font-bold text-slate-900">
+                        {users.filter((u) => u.role === "super_admin" || u.role === "counselor" || u.role === "document_verifier").length}
+                      </span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Real-Time Snapshot Engines:</span>
+                      <span className="font-bold text-emerald-600">5 Collections Active</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
