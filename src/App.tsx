@@ -13,6 +13,7 @@ import Programs from "./pages/Programs";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
 import { ToastProvider } from "./components/Toast";
 
 export default function App() {
@@ -33,6 +34,8 @@ export default function App() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Catch-all route for unknown URLs */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </ToastProvider>

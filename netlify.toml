@@ -1,0 +1,17 @@
+# Netlify configuration for Move2Deutschland Single Page Application
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[dev]
+  publish = "dist"
+
+# Single-Page Application (SPA) fallback rewrite:
+# Non-file requests are rewritten to /index.html with HTTP status 200,
+# enabling React Router to manage valid routes, browser back/forward, and query parameters.
+# Real static files (JS, CSS, images, PDFs) take precedence and are served directly.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
